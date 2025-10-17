@@ -16,11 +16,34 @@ export default function Page() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
-  const { keyboardHeight, isKeyboardOpen, onInputFocus, onInputBlur } = useKeyboardHandler();
+  const { keyboardHeight, isKeyboardOpen, platform, onInputFocus, onInputBlur } = useKeyboardHandler();
 
-  // ACCEPT iOS: Scene moves slightly (15%), Chat moves fully
-  const sceneMovement = Math.floor(keyboardHeight * 0.15);
-  const chatMovement = keyboardHeight;
+  // Platform-specific movement strategies - 3% scene movement
+  const getMovementValues = () => {
+    const sceneMovementPercentage = 0.03; // 3% movement
+    
+    if (platform === 'ios') {
+      // iOS: Scene moves 3%, Chat moves fully
+      return {
+        scene: Math.floor(keyboardHeight * sceneMovementPercentage),
+        chat: keyboardHeight
+      };
+    } else if (platform === 'android') {
+      // Android: Scene moves 3%, Chat moves fully
+      return {
+        scene: Math.floor(keyboardHeight * sceneMovementPercentage),
+        chat: keyboardHeight
+      };
+    } else {
+      // Fallback: 3% movement
+      return {
+        scene: Math.floor(keyboardHeight * sceneMovementPercentage),
+        chat: keyboardHeight
+      };
+    }
+  };
+
+  const { scene: sceneMovement, chat: chatMovement } = getMovementValues();
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -48,7 +71,6 @@ export default function Page() {
     setMessages((prev) => [...prev, { id: Date.now().toString(), content: input.trim() }]);
     setInput("");
     
-    // Reset textarea
     setTimeout(() => {
       if (textareaRef.current) {
         textareaRef.current.style.height = '44px';
@@ -84,20 +106,24 @@ export default function Page() {
 
   return (
     <div className="fixed inset-0 bg-black" style={{ height: '100vh', overflow: 'hidden' }}>
-      {/* SCENE - Accepts graceful movement (15%) */}
+      {/* SCENE - Only 3% movement */}
       <div 
         className="absolute inset-0 transition-all duration-500 ease-out"
         style={{ 
           transform: `translateY(-${sceneMovement}px)`,
-          // Visual compensation when chat is open
-          filter: isChatOpen ? 'brightness(0.6) blur(3px)' : 'brightness(1) blur(0px)',
-          scale: isChatOpen ? '1.02' : '1'
+          // Visual effects when chat is open
+          filter: isChatOpen 
+            ? platform === 'ios' 
+              ? 'brightness(0.8) blur(3px)' 
+              : 'brightness(0.85) blur(2px)'
+            : 'none',
+          scale: isChatOpen ? '1.005' : '1' // Very subtle scale
         }}
       >
         <Scene />
       </div>
 
-      {/* TALK TO ME BUTTON - Fixed position */}
+      {/* TALK TO ME BUTTON */}
       {!isChatOpen && (
         <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-10 safe-area-bottom">
           <button
@@ -109,7 +135,7 @@ export default function Page() {
         </div>
       )}
 
-      {/* CHAT MODAL - Moves fully with keyboard */}
+      {/* CHAT MODAL - Full movement */}
       {isChatOpen && (
         <div 
           className="fixed inset-0 z-50 transition-transform duration-500 ease-out"
@@ -117,7 +143,11 @@ export default function Page() {
         >
           {/* Backdrop */}
           <div 
-            className="absolute inset-0 bg-black/40"
+            className="absolute inset-0 transition-opacity duration-500"
+            style={{
+              backgroundColor: platform === 'ios' ? 'rgba(0,0,0,0.4)' : 'rgba(0,0,0,0.5)',
+              backdropFilter: platform === 'ios' ? 'blur(6px)' : 'blur(4px)'
+            }}
             onClick={closeChat}
           />
           
@@ -138,7 +168,7 @@ export default function Page() {
             <div 
               className="flex-1 overflow-y-auto p-6 messages-container"
               style={{
-                maxHeight: '35vh',
+                maxHeight: platform === 'ios' ? '32vh' : '36vh',
                 minHeight: '150px'
               }}
             >
