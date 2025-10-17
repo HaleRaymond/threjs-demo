@@ -18,12 +18,16 @@ export default function Page() {
   
   const { keyboardHeight, isKeyboardOpen, onInputFocus, onInputBlur } = useKeyboardHandler();
 
+  // Platform detection
+  const isIOS = typeof window !== 'undefined' && /iPhone|iPad|iPod/.test(navigator.userAgent);
+  const isAndroid = typeof window !== 'undefined' && /Android/.test(navigator.userAgent);
+
   // Auto-scroll to bottom
   useEffect(() => {
     setTimeout(() => {
       messagesEndRef.current?.scrollIntoView({ 
         behavior: "smooth",
-        block: "nearest"
+        block: "end"
       });
     }, 100);
   }, [messages, isKeyboardOpen]);
@@ -66,14 +70,26 @@ export default function Page() {
     }
   };
 
+  const handleInputFocus = () => {
+    onInputFocus();
+    setIsChatOpen(true);
+  };
+
+  const handleCloseChat = () => {
+    setIsChatOpen(false);
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+  };
+
   return (
     <div className="fixed inset-0 bg-black">
-      {/* SCENE - NEVER MOVES */}
+      {/* SCENE - ABSOLUTELY FIXED */}
       <div className="scene-container">
         <Scene />
       </div>
 
-      {/* CHAT UI - SEPARATE LAYER */}
+      {/* CHAT UI */}
       <div className="fixed inset-0 z-10 pointer-events-none">
         
         {/* MESSAGES OVERLAY */}
@@ -81,14 +97,14 @@ export default function Page() {
           <div 
             className="absolute inset-0 pointer-events-auto safe-area-top transition-transform duration-300 ease-out"
             style={{
-              // Only messages move up
+              // Move messages up on both platforms
               transform: `translateY(-${keyboardHeight}px)`
             }}
           >
-            {/* Close button - fixed position */}
+            {/* Close button */}
             <div className="absolute top-4 right-4 z-20">
               <button
-                onClick={() => setIsChatOpen(false)}
+                onClick={handleCloseChat}
                 className="px-4 py-2 bg-black/70 text-white rounded-full text-sm backdrop-blur-lg border border-white/20"
               >
                 Close
@@ -100,7 +116,8 @@ export default function Page() {
               <div 
                 className="flex-1 overflow-y-auto px-4 pb-4"
                 style={{
-                  paddingBottom: isKeyboardOpen ? `${keyboardHeight + 80}px` : '0px'
+                  // Extra padding for Android to see messages above keyboard
+                  paddingBottom: isAndroid ? '120px' : '80px'
                 }}
               >
                 <div className="space-y-3">
@@ -118,13 +135,13 @@ export default function Page() {
           </div>
         )}
 
-        {/* INPUT AREA - FIXED BOTTOM */}
+        {/* INPUT AREA - PLATFORM SPECIFIC POSITIONING */}
         <div className="absolute bottom-0 left-0 right-0 pointer-events-auto safe-area-bottom">
           <div 
             className="transition-transform duration-300 ease-out"
             style={{
-              // Input moves up with keyboard
-              transform: `translateY(-${keyboardHeight}px)`
+              // DIFFERENT BEHAVIOR FOR IOS vs ANDROID
+              transform: isIOS ? `translateY(-${keyboardHeight}px)` : 'none'
             }}
           >
             {!isChatOpen ? (
@@ -138,8 +155,18 @@ export default function Page() {
                 </button>
               </div>
             ) : (
-              // Chat input
-              <div className="px-4 pb-4 bg-gradient-to-t from-black/60 via-black/40 to-transparent pt-6">
+              // Chat input - DIFFERENT POSITIONING FOR ANDROID
+              <div 
+                className="px-4 pb-4 bg-gradient-to-t from-black/60 via-black/40 to-transparent pt-6"
+                style={{
+                  // On Android, use fixed positioning to stay above keyboard
+                  position: isAndroid ? 'fixed' : 'relative',
+                  bottom: isAndroid ? '0' : 'auto',
+                  left: isAndroid ? '0' : 'auto',
+                  right: isAndroid ? '0' : 'auto',
+                  zIndex: isAndroid ? 1000 : 'auto'
+                }}
+              >
                 <form onSubmit={handleSubmit} className="flex gap-3 items-end">
                   <div className="flex-1">
                     <textarea
@@ -147,7 +174,7 @@ export default function Page() {
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
                       onKeyDown={handleKeyDown}
-                      onFocus={onInputFocus}
+                      onFocus={handleInputFocus}
                       onBlur={onInputBlur}
                       placeholder="Type a message..."
                       rows={1}
