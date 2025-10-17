@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* COMPLETE LOCKDOWN - PREVENT ALL VIEWPORT MOVEMENT */
+/* COMPLETE IOS VIEWPORT LOCK */
 html, body {
   margin: 0;
   padding: 0;
@@ -12,18 +12,23 @@ html, body {
   overscroll-behavior: none;
 }
 
-/* iOS SPECIFIC FIXES */
+/* IOS SPECIFIC - PREVENT VIEWPORT MOVEMENT */
 @supports (-webkit-touch-callout: none) {
+  html {
+    position: fixed;
+    height: 100%;
+    overflow: hidden;
+  }
+  
   body {
-    /* Prevent elastic scroll */
-    -webkit-overflow-scrolling: auto;
-    /* Lock height */
-    height: 100vh;
-    height: -webkit-fill-available;
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
   }
 }
 
-/* SCENE - ABSOLUTELY FIXED */
+/* SCENE - ABSOLUTELY FIXED ON IOS */
 .scene-container {
   position: fixed !important;
   top: 0 !important;
@@ -31,7 +36,7 @@ html, body {
   width: 100vw !important;
   height: 100vh !important;
   z-index: 1 !important;
-  pointer-events: none;
+  transform: none !important;
 }
 
 canvas {
@@ -41,7 +46,7 @@ canvas {
   width: 100vw !important;
   height: 100vh !important;
   z-index: 1 !important;
-  pointer-events: auto;
+  transform: none !important;
   touch-action: none;
 }
 
