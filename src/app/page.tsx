@@ -2,6 +2,7 @@
 
 import { FormEvent, KeyboardEvent, useState, useRef, useEffect } from "react";
 import Scene from "./components/scene/Scene";
+import { useKeyboardHandler } from "../hooks/useKeyboardHandler";
 
 type ChatMessage = {
   id: string;
@@ -14,8 +15,9 @@ export default function Page() {
   const [showMessages, setShowMessages] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  
+  const { keyboardHeight, isKeyboardOpen, onInputFocus, onInputBlur } = useKeyboardHandler();
 
-  // Auto-scroll to bottom
   useEffect(() => {
     setTimeout(() => {
       messagesEndRef.current?.scrollIntoView({ 
@@ -23,9 +25,8 @@ export default function Page() {
         block: "end"
       });
     }, 100);
-  }, [messages]);
+  }, [messages, isKeyboardOpen]);
 
-  // Auto-resize textarea
   useEffect(() => {
     const textarea = textareaRef.current;
     if (textarea) {
@@ -65,14 +66,18 @@ export default function Page() {
 
   const handleTextareaFocus = () => {
     setShowMessages(true);
+    onInputFocus();
     
-    // Auto-scroll when keyboard opens
     setTimeout(() => {
       messagesEndRef.current?.scrollIntoView({ 
         behavior: "smooth",
         block: "end"
       });
-    }, 300);
+    }, 350);
+  };
+
+  const handleTextareaBlur = () => {
+    onInputBlur();
   };
 
   const closeMessages = () => {
@@ -84,13 +89,13 @@ export default function Page() {
 
   return (
     <div className="fixed inset-0 bg-gray-900">
-      {/* SCENE - ABSOLUTELY FIXED */}
+      {/* SCENE - FIXED */}
       <Scene />
 
       {/* UI LAYER */}
       <div className="fixed inset-0 pointer-events-none z-10">
         
-        {/* CLOSE BUTTON - FIXED AT TOP */}
+        {/* CLOSE BUTTON - FIXED */}
         {showMessages && (
           <div className="absolute top-0 left-0 right-0 pointer-events-auto safe-area-inset">
             <div className="flex items-center justify-end py-4 px-4">
@@ -105,15 +110,27 @@ export default function Page() {
           </div>
         )}
 
-        {/* MESSAGES - SCROLLABLE AREA */}
+        {/* MESSAGES CONTENT */}
         {showMessages && (
-          <div className="absolute inset-0 pointer-events-auto safe-area-inset">
-            <div className="h-full flex flex-col">
-              {/* Spacer for close button */}
+          <div 
+            className="absolute inset-0 pointer-events-auto"
+            style={{
+              transform: `translateY(-${keyboardHeight}px)`,
+              transition: 'transform 0.3s ease-out',
+              paddingTop: 'env(safe-area-inset-top, 0px)'
+            }}
+          >
+            <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-transparent to-transparent" />
+            
+            <div className="relative h-full flex flex-col">
               <div className="h-16" />
               
-              {/* Messages with gradient background */}
-              <div className="flex-1 overflow-y-auto px-4 messages-container bg-gradient-to-b from-black/70 to-transparent">
+              <div 
+                className="flex-1 overflow-y-auto px-4 messages-container"
+                style={{
+                  paddingBottom: isKeyboardOpen ? '20px' : '0px'
+                }}
+              >
                 <div className="space-y-3 py-2">
                   {messages.map((msg) => (
                     <div key={msg.id} className="flex justify-end">
@@ -129,8 +146,15 @@ export default function Page() {
           </div>
         )}
 
-        {/* INPUT AREA - FIXED AT BOTTOM */}
-        <div className="absolute bottom-0 left-0 right-0 pointer-events-auto safe-area-inset">
+        {/* INPUT AREA */}
+        <div 
+          className="absolute bottom-0 left-0 right-0 pointer-events-auto"
+          style={{
+            transform: `translateY(-${keyboardHeight}px)`,
+            transition: 'transform 0.3s ease-out',
+            paddingBottom: 'env(safe-area-inset-bottom, 0px)'
+          }}
+        >
           <div className="px-4 pb-4 bg-gradient-to-t from-black/50 to-transparent pt-6">
             <form onSubmit={handleSubmit} className="flex gap-3 items-end">
               <div className="flex-1 relative">
@@ -140,6 +164,7 @@ export default function Page() {
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={handleKeyDown}
                   onFocus={handleTextareaFocus}
+                  onBlur={handleTextareaBlur}
                   placeholder="Type a message..."
                   rows={1}
                   className="w-full bg-black/60 backdrop-blur-lg text-white px-4 py-3 rounded-2xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400 border border-white/10 text-[16px] pointer-events-auto"
