@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 
 interface KeyboardState {
   keyboardHeight: number;
@@ -10,18 +10,16 @@ interface KeyboardState {
 export const useKeyboardHandler = (): KeyboardState => {
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
-  
-  const isIOS = typeof window !== 'undefined' && 
-    (/iPad|iPhone|iPod/.test(navigator.userAgent) || 
+
+  const isIOS = typeof window !== 'undefined' &&
+    (/iPad|iPhone|iPod/.test(navigator.userAgent) ||
      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
 
   const updateKeyboardState = useCallback((height: number) => {
-    console.log('Setting keyboard height:', height);
     const isOpening = height > 100;
     setKeyboardHeight(height);
     setIsKeyboardOpen(isOpening);
-    
-    // CRITICAL: Update iOS class
+
     if (isIOS) {
       if (isOpening) {
         document.documentElement.classList.add('ios-keyboard-open');
@@ -31,39 +29,35 @@ export const useKeyboardHandler = (): KeyboardState => {
     }
   }, [isIOS]);
 
-  // SIMPLE APPROACH: Use fixed keyboard heights for iOS
   const handleFocus = useCallback(() => {
-    console.log('Input focused');
-    
     if (isIOS) {
-      // Use known iOS keyboard heights
       const isLandscape = window.innerWidth > window.innerHeight;
       const estimatedHeight = isLandscape ? 200 : 336;
-      
-      setTimeout(() => {
-        updateKeyboardState(estimatedHeight);
-      }, 100);
+      setTimeout(() => updateKeyboardState(estimatedHeight), 100);
     } else {
-      // Estimate for Android/other
-      setTimeout(() => {
-        updateKeyboardState(300);
-      }, 100);
+      setTimeout(() => updateKeyboardState(300), 100);
     }
   }, [isIOS, updateKeyboardState]);
 
   const handleBlur = useCallback(() => {
-    console.log('Input blurred');
-    
     setTimeout(() => {
-      const activeElement = document.activeElement;
-      const isTextInput = activeElement?.tagName === 'TEXTAREA' || 
-                         activeElement?.tagName === 'INPUT';
-      
-      if (!isTextInput) {
-        updateKeyboardState(0);
-      }
+      const active = document.activeElement;
+      const isInput = active?.tagName === 'INPUT' || active?.tagName === 'TEXTAREA';
+      if (!isInput) updateKeyboardState(0);
     }, 150);
   }, [updateKeyboardState]);
+
+  useEffect(() => {
+    const lockResize = () => {
+      if (isIOS && isKeyboardOpen) {
+        window.scrollTo(0, 0);
+        document.body.style.height = '100dvh';
+        document.body.style.overflow = 'hidden';
+      }
+    };
+    window.addEventListener('resize', lockResize);
+    return () => window.removeEventListener('resize', lockResize);
+  }, [isIOS, isKeyboardOpen]);
 
   return {
     keyboardHeight,
@@ -72,3 +66,4 @@ export const useKeyboardHandler = (): KeyboardState => {
     onInputBlur: handleBlur
   };
 };
+
