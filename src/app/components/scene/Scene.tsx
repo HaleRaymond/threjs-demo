@@ -2,7 +2,7 @@
 
 import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
-import { Suspense, useEffect, useState, useRef } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { VRM, VRMLoaderPlugin } from "@pixiv/three-vrm";
 import * as THREE from "three";
@@ -84,44 +84,36 @@ function Lights() {
 
 export default function Scene() {
   return (
-    <Canvas
-      camera={{ 
-        position: [0, 1.6, 3], 
-        fov: 45,
-        near: 0.1,
-        far: 1000
-      }}
-      onCreated={({ gl }) => {
-        if (typeof window !== 'undefined') {
-          gl.setPixelRatio(Math.min(window.devicePixelRatio, 1));
-        }
-        gl.shadowMap.enabled = true;
-        gl.shadowMap.type = THREE.PCFSoftShadowMap;
-      }}
-      style={{ 
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100%',
-        height: '100%',
-        touchAction: 'none'
-      }}
-    >
-      <color attach="background" args={["#e0e0e0"]} />
-      <Suspense fallback={null}>
-        <Lights />
-        <Avatar />
-        <Floor />
-      </Suspense>
-      
-      <OrbitControls 
-        target={[0, 1.0, 0]}
-        enablePan={true}
-        enableZoom={true}
-        enableRotate={true}
-        minDistance={1}
-        maxDistance={10}
-      />
-    </Canvas>
+    <div className="w-full h-full"> {/* Container div */}
+      <Canvas
+        camera={{ 
+          position: [0, 1.6, 3], 
+          fov: 45,
+          near: 0.1,
+          far: 1000
+        }}
+        onCreated={({ gl }) => {
+          gl.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+          gl.shadowMap.enabled = true;
+          gl.shadowMap.type = THREE.PCFSoftShadowMap;
+        }}
+      >
+        <color attach="background" args={["#e0e0e0"]} />
+        <Suspense fallback={null}>
+          <Lights />
+          <Avatar />
+          <Floor />
+        </Suspense>
+        
+        <OrbitControls 
+          target={[0, 1.0, 0]}
+          enablePan={true}
+          enableZoom={true}
+          enableRotate={true}
+          minDistance={1}
+          maxDistance={10}
+        />
+      </Canvas>
+    </div>
   );
 }
