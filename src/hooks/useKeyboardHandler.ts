@@ -1,54 +1,53 @@
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 
-interface KeyboardState {
-  keyboardHeight: number;
-  isKeyboardOpen: boolean;
-  onInputFocus: () => void;
-  onInputBlur: () => void;
-}
-
-export const useKeyboardHandler = (): KeyboardState => {
+export const useKeyboardHandler = () => {
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
-  
-  const isIOS = typeof window !== 'undefined' && 
-    (/iPad|iPhone|iPod/.test(navigator.userAgent) || 
-     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
 
-  const updateKeyboardState = useCallback((height: number) => {
-    console.log('Keyboard state:', height);
-    const isOpening = height > 100;
-    setKeyboardHeight(height);
-    setIsKeyboardOpen(isOpening);
+  // Realistic keyboard detection
+  useEffect(() => {
+    const handleResize = () => {
+      const visualViewport = window.visualViewport;
+      if (!visualViewport) return;
+
+      const heightDiff = window.screen.height - visualViewport.height;
+      
+      if (heightDiff > 200) {
+        setKeyboardHeight(heightDiff);
+        setIsKeyboardOpen(true);
+      } else {
+        setKeyboardHeight(0);
+        setIsKeyboardOpen(false);
+      }
+    };
+
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleResize);
+    }
+
+    return () => {
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleResize);
+      }
+    };
   }, []);
 
-  // SIMPLE FOCUS/BLUR HANDLERS
-  const handleFocus = useCallback(() => {
-    console.log('Input focused - opening keyboard');
-    
-    // Immediately set keyboard state for iOS
-    if (isIOS) {
-      const isLandscape = window.innerWidth > window.innerHeight;
-      const estimatedHeight = isLandscape ? 200 : 336;
-      updateKeyboardState(estimatedHeight);
-    } else {
-      updateKeyboardState(300);
-    }
-  }, [isIOS, updateKeyboardState]);
+  const onInputFocus = useCallback(() => {
+    setIsKeyboardOpen(true);
+  }, []);
 
-  const handleBlur = useCallback(() => {
-    console.log('Input blurred - closing keyboard');
-    
-    // Close keyboard after delay
+  const onInputBlur = useCallback(() => {
+    // Delay to allow for form submission
     setTimeout(() => {
-      updateKeyboardState(0);
+      setIsKeyboardOpen(false);
+      setKeyboardHeight(0);
     }, 100);
-  }, [updateKeyboardState]);
+  }, []);
 
   return {
     keyboardHeight,
     isKeyboardOpen,
-    onInputFocus: handleFocus,
-    onInputBlur: handleBlur
+    onInputFocus,
+    onInputBlur
   };
 };
