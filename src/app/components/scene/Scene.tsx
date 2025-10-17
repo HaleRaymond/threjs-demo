@@ -92,36 +92,15 @@ export default function Scene() {
         far: 1000
       }}
       onCreated={({ gl }) => {
-        // Performance optimizations
         gl.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         gl.shadowMap.enabled = true;
         gl.shadowMap.type = THREE.PCFSoftShadowMap;
       }}
       style={{ 
-        // CRITICAL: Must match the container styling
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100vw',
-        height: '100vh',
-        display: 'block',
-        
-        // iOS optimizations
-        touchAction: 'none',
-        WebkitTouchCallout: 'none',
-        WebkitUserSelect: 'none',
-        userSelect: 'none',
-        
-        // Ensure it stays behind the UI
-        zIndex: 1
+        width: '100%',
+        height: '100%',
+        display: 'block'
       }}
-      gl={{
-        antialias: true,
-        alpha: false,
-        powerPreference: "high-performance"
-      }}
-      // Use the document body for events to avoid conflicts
-      eventSource={typeof document !== 'undefined' ? document.body : undefined}
     >
       <color attach="background" args={["#e0e0e0"]} />
       <Suspense fallback={null}>
@@ -137,16 +116,6 @@ export default function Scene() {
         enableRotate={true}
         minDistance={1}
         maxDistance={10}
-        
-        // Mobile optimizations
-        touches={{
-          ONE: THREE.TOUCH.ROTATE,
-          TWO: THREE.TOUCH.DOLLY_PAN
-        }}
-        
-        // Performance
-        enableDamping={true}
-        dampingFactor={0.05}
       />
     </Canvas>
   );
