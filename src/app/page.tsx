@@ -1,220 +1,131 @@
 "use client";
 
-import { FormEvent, KeyboardEvent, useState, useRef, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Scene from "./components/scene/Scene";
 import { useKeyboardHandler } from "../hooks/useKeyboardHandler";
 
-type ChatMessage = {
-  id: string;
-  content: string;
-};
-
 export default function Page() {
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [input, setInput] = useState("");
-  const [showMessages, setShowMessages] = useState(false);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
-  
   const { keyboardHeight, isKeyboardOpen, onInputFocus, onInputBlur } = useKeyboardHandler();
 
-  // iOS-specific touch prevention
+  const [messages, setMessages] = useState<{ id: number; text: string; from: "user" | "bot" }[]>([]);
+  const [inputValue, setInputValue] = useState("");
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Scroll chat to bottom on new message or keyboard open
   useEffect(() => {
-    const preventFocus = (e: TouchEvent) => {
-      const target = e.target as HTMLElement;
-      if (target && !['TEXTAREA', 'INPUT'].includes(target.tagName)) {
-        e.preventDefault();
-      }
-    };
-
-    const preventTouchMove = (e: TouchEvent) => {
-      // Prevent scroll on body when keyboard is open
-      if (isKeyboardOpen) {
-        e.preventDefault();
-      }
-    };
-
-    document.addEventListener('touchstart', preventFocus, { passive: false });
-    document.addEventListener('touchmove', preventTouchMove, { passive: false });
-
-    return () => {
-      document.removeEventListener('touchstart', preventFocus);
-      document.removeEventListener('touchmove', preventTouchMove);
-    };
-  }, [isKeyboardOpen]);
-
-  // Auto-scroll to bottom when messages or keyboard changes
-  useEffect(() => {
-    setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ 
-        behavior: "smooth",
-        block: "end"
-      });
-    }, 100);
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isKeyboardOpen]);
 
-  // Auto-resize textarea
-  useEffect(() => {
-    const textarea = textareaRef.current;
-    if (textarea) {
-      textarea.style.height = 'auto';
-      const newHeight = Math.min(textarea.scrollHeight, 120);
-      textarea.style.height = newHeight + 'px';
-    }
-  }, [input]);
-
+  // Handle send message
   const sendMessage = () => {
-    if (!input.trim()) return;
+    if (!inputValue.trim()) return;
 
-    setMessages((prev) => [
-      ...prev,
-      { id: Date.now().toString(), content: input.trim() },
-    ]);
-    setInput("");
-    
-    // Reset textarea
+    const userMessage = { id: Date.now(), text: inputValue.trim(), from: "user" };
+    setMessages((prev) => [...prev, userMessage]);
+    setInputValue("");
+
+    // Fake bot response with delay
     setTimeout(() => {
-      if (textareaRef.current) {
-        textareaRef.current.style.height = '48px';
-      }
-    }, 50);
+      setMessages((prev) => [
+        ...prev,
+        { id: Date.now() + 1, text: `Echo: ${userMessage.text}`, from: "bot" },
+      ]);
+    }, 1000);
   };
 
-  const handleSubmit = (e: FormEvent) => {
-    e.preventDefault();
-    sendMessage();
-  };
-
-  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+  // Handle Enter key for sending message
+  const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
-    }
-  };
-
-  const handleTextareaFocus = () => {
-    setShowMessages(true);
-    onInputFocus();
-    
-    // Scroll to bottom after keyboard animation
-    setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ 
-        behavior: "smooth",
-        block: "end"
-      });
-    }, 350);
-  };
-
-  const handleTextareaBlur = () => {
-    onInputBlur();
-  };
-
-  const closeMessages = () => {
-    setShowMessages(false);
-    if (document.activeElement instanceof HTMLElement) {
-      document.activeElement.blur();
+      inputRef.current?.blur();
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-gray-900">
-      {/* SCENE - ABSOLUTELY FIXED, NEVER MOVES */}
+    <>
       <Scene />
-
-      {/* UI LAYER - SEPARATE FROM SCENE */}
-      <div className="fixed inset-0 pointer-events-none z-10">
-        
-        {/* CLOSE BUTTON - FIXED AT TOP, NEVER MOVES */}
-        {showMessages && (
-          <div className="absolute top-0 left-0 right-0 pointer-events-auto safe-area-inset">
-            <div className="flex items-center justify-end py-4 px-4">
-              <button
-                onClick={closeMessages}
-                className="px-4 py-2 bg-black/60 text-white/90 rounded-full text-sm backdrop-blur-lg border border-white/10"
-                style={{ minHeight: '44px' }}
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* Messages Panel - ONLY THIS MOVES UP WITH KEYBOARD */}
-        {showMessages && (
-          <div 
-            className="messages-panel pointer-events-auto"
-            style={{
-              // ONLY this element moves
-              transform: `translateY(-${keyboardHeight}px)`,
-              paddingTop: 'env(safe-area-inset-top, 0px)'
-            }}
+      <div
+        className="messages-panel"
+        style={{
+          bottom: keyboardHeight,
+          top: 0,
+          left: 0,
+          right: 0,
+          overflowY: "auto",
+          padding: "1rem",
+          background: "rgba(0,0,0,0.5)",
+          color: "white",
+          WebkitOverflowScrolling: "touch",
+        }}
+      >
+        {messages.map(({ id, text, from }) => (
+          <div
+            key={id}
+            className={`mb-2 max-w-xs px-3 py-2 rounded-lg ${
+              from === "user" ? "bg-blue-600 self-end ml-auto" : "bg-gray-700"
+            }`}
           >
-            <div className="flex-1 overflow-hidden flex flex-col h-full">
-              {/* Spacer for fixed close button */}
-              <div className="h-16" />
-              
-              {/* Messages */}
-              <div 
-                className="flex-1 overflow-y-auto px-4 messages-container pointer-events-auto"
-                style={{
-                  paddingBottom: isKeyboardOpen ? `${keyboardHeight + 20}px` : '0px'
-                }}
-              >
-                <div className="space-y-3 py-2">
-                  {messages.map((msg) => (
-                    <div key={msg.id} className="flex justify-end">
-                      <div className="max-w-[80%] rounded-2xl px-4 py-3 bg-blue-600 text-white text-[15px] leading-relaxed break-words shadow-xl">
-                        {msg.content}
-                      </div>
-                    </div>
-                  ))}
-                  <div ref={messagesEndRef} className="h-4" />
-                </div>
-              </div>
-            </div>
+            {text}
           </div>
-        )}
-
-        {/* Input Area - MOVES UP WITH KEYBOARD */}
-        <div 
-          className="input-container pointer-events-auto"
+        ))}
+        <div ref={messagesEndRef} />
+      </div>
+      <div
+        className="input-container safe-area-inset"
+        style={{
+          bottom: 0,
+          left: 0,
+          right: 0,
+          background: "rgba(0,0,0,0.8)",
+          padding: "0.5rem 1rem",
+          display: "flex",
+          gap: "0.5rem",
+          alignItems: "center",
+        }}
+      >
+        <textarea
+          ref={inputRef}
+          rows={1}
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          onFocus={onInputFocus}
+          onBlur={onInputBlur}
+          onKeyDown={onKeyDown}
+          placeholder="Type your message..."
           style={{
-            // ONLY this element moves
-            transform: `translateY(-${keyboardHeight}px)`,
-            paddingBottom: 'env(safe-area-inset-bottom, 0px)'
+            flexGrow: 1,
+            resize: "none",
+            borderRadius: 6,
+            border: "none",
+            padding: "0.5rem",
+            fontSize: "1rem",
+            lineHeight: 1.3,
+          }}
+          spellCheck={false}
+          autoComplete="off"
+          autoCorrect="off"
+          autoCapitalize="sentences"
+        />
+        <button
+          onClick={() => {
+            sendMessage();
+            inputRef.current?.blur();
+          }}
+          style={{
+            backgroundColor: "#2563eb",
+            border: "none",
+            color: "white",
+            borderRadius: 6,
+            padding: "0.5rem 1rem",
+            cursor: "pointer",
+            fontWeight: "bold",
           }}
         >
-          <div className="px-4 pb-4 bg-gradient-to-t from-black/50 to-transparent pt-6">
-            <form onSubmit={handleSubmit} className="flex gap-3 items-end">
-              <div className="flex-1 relative">
-                <textarea
-                  ref={textareaRef}
-                  value={input}
-                  onChange={(e) => setInput(e.target.value)}
-                  onKeyDown={handleKeyDown}
-                  onFocus={handleTextareaFocus}
-                  onBlur={handleTextareaBlur}
-                  placeholder="Type a message..."
-                  rows={1}
-                  className="w-full bg-black/60 backdrop-blur-lg text-white px-4 py-3 rounded-2xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400 border border-white/10 text-[16px] pointer-events-auto"
-                  style={{
-                    minHeight: '48px',
-                    maxHeight: '120px'
-                  }}
-                />
-              </div>
-              <button
-                type="submit"
-                disabled={!input.trim()}
-                className="px-5 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium flex-shrink-0 shadow-xl pointer-events-auto"
-                style={{ minHeight: '48px' }}
-              >
-                Send
-              </button>
-            </form>
-          </div>
-        </div>
+          Send
+        </button>
       </div>
-    </div>
+    </>
   );
 }
