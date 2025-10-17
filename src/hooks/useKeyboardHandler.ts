@@ -14,7 +14,6 @@ export const useKeyboardHandler = () => {
     setPlatform(isIOS ? 'ios' : isAndroid ? 'android' : 'unknown');
 
     let originalHeight = window.innerHeight;
-    let visualViewport: VisualViewport | null = null;
 
     // Universal resize handler
     const handleResize = () => {
@@ -77,13 +76,12 @@ export const useKeyboardHandler = () => {
     
     if (window.visualViewport) {
       window.visualViewport.addEventListener('resize', handleVisualViewport);
-      visualViewport = window.visualViewport;
     }
 
     return () => {
       window.removeEventListener('resize', handleResize);
-      if (visualViewport) {
-        visualViewport.removeEventListener('resize', handleVisualViewport);
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleVisualViewport);
       }
     };
   }, []);
