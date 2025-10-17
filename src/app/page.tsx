@@ -18,49 +18,22 @@ export default function Page() {
   
   const { keyboardHeight, isKeyboardOpen, onInputFocus, onInputBlur } = useKeyboardHandler();
 
-  // iOS-specific touch prevention - CRITICAL FOR IOS
+  // iOS-specific touch prevention
   useEffect(() => {
     const preventFocus = (e: TouchEvent) => {
       const target = e.target as HTMLElement;
       if (target && !['TEXTAREA', 'INPUT'].includes(target.tagName)) {
-        // Prevent focus on non-input elements to avoid keyboard issues
         e.preventDefault();
       }
     };
 
-    // Prevent context menu on long press
-    const preventContextMenu = (e: Event) => {
-      e.preventDefault();
-    };
-
     document.addEventListener('touchstart', preventFocus, { passive: false });
-    document.addEventListener('contextmenu', preventContextMenu);
-
     return () => {
       document.removeEventListener('touchstart', preventFocus);
-      document.removeEventListener('contextmenu', preventContextMenu);
     };
   }, []);
 
-  // Prevent iOS scroll on scene
-  useEffect(() => {
-    const preventDefault = (e: Event) => {
-      e.preventDefault();
-    };
-
-    const sceneElement = document.querySelector('.fixed.inset-0.z-0');
-    if (sceneElement) {
-      sceneElement.addEventListener('touchmove', preventDefault, { passive: false });
-    }
-
-    return () => {
-      if (sceneElement) {
-        sceneElement.removeEventListener('touchmove', preventDefault);
-      }
-    };
-  }, []);
-
-  // Auto-scroll to bottom
+  // Auto-scroll to bottom when messages or keyboard changes
   useEffect(() => {
     setTimeout(() => {
       messagesEndRef.current?.scrollIntoView({ 
@@ -113,6 +86,7 @@ export default function Page() {
     setShowMessages(true);
     onInputFocus();
     
+    // Scroll to bottom after keyboard animation
     setTimeout(() => {
       messagesEndRef.current?.scrollIntoView({ 
         behavior: "smooth",
@@ -158,23 +132,20 @@ export default function Page() {
         {/* Messages Panel - ONLY THIS SCROLLS UP */}
         {showMessages && (
           <div 
-            className="absolute inset-0 flex flex-col pointer-events-auto"
+            className="messages-panel pointer-events-auto"
             style={{
-              // Only the messages content area moves up
               transform: `translateY(-${keyboardHeight}px)`,
-              transition: 'transform 0.3s ease-out',
               paddingTop: 'env(safe-area-inset-top, 0px)'
             }}
           >
-            <div className="flex-1 overflow-hidden flex flex-col">
+            <div className="flex-1 overflow-hidden flex flex-col h-full">
               {/* Spacer for fixed close button */}
-              <div className="h-16" /> {/* Matches the close button height */}
+              <div className="h-16" />
               
               {/* Messages */}
               <div 
                 className="flex-1 overflow-y-auto px-4 messages-container pointer-events-auto"
                 style={{
-                  // Add padding to ensure messages are visible above keyboard
                   paddingBottom: isKeyboardOpen ? `${keyboardHeight + 20}px` : '0px'
                 }}
               >
@@ -195,14 +166,10 @@ export default function Page() {
 
         {/* Input Area - MOVES UP WITH KEYBOARD */}
         <div 
-          className="absolute bottom-0 left-0 right-0 pointer-events-auto input-container"
+          className="input-container pointer-events-auto"
           style={{
             transform: `translateY(-${keyboardHeight}px)`,
-            transition: 'transform 0.3s ease-out',
-            paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-            position: 'fixed',
-            bottom: '0',
-            zIndex: 1000
+            paddingBottom: 'env(safe-area-inset-bottom, 0px)'
           }}
         >
           <div className="px-4 pb-4 bg-gradient-to-t from-black/50 to-transparent pt-6">
