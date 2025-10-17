@@ -2,22 +2,70 @@
 
 import { useState, useEffect, useRef } from "react";
 import Scene from "./components/scene/Scene";
-import { useKeyboardHandler } from "../hooks/useKeyboardHandler";
+
+function useKeyboardHandler() {
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+  const [isKeyboardOpen, setKeyboardOpen] = useState(false);
+
+  useEffect(() => {
+    const html = document.documentElement;
+
+    function onFocus() {
+      setKeyboardOpen(true);
+      html.classList.add("ios-keyboard-open");
+    }
+
+    function onBlur() {
+      setKeyboardOpen(false);
+      setKeyboardHeight(0);
+      html.classList.remove("ios-keyboard-open");
+    }
+
+    function onResize() {
+      if (isKeyboardOpen) {
+        // Estimate keyboard height from viewport resize on iOS
+        const heightDiff = window.innerHeight - document.documentElement.clientHeight;
+        setKeyboardHeight(heightDiff > 0 ? heightDiff : 0);
+      }
+    }
+
+    window.addEventListener("resize", onResize);
+    return () => {
+      window.removeEventListener("resize", onResize);
+    };
+  }, [isKeyboardOpen]);
+
+  return {
+    keyboardHeight,
+    isKeyboardOpen,
+    onInputFocus: () => {
+      setKeyboardOpen(true);
+      document.documentElement.classList.add("ios-keyboard-open");
+    },
+    onInputBlur: () => {
+      setKeyboardOpen(false);
+      setKeyboardHeight(0);
+      document.documentElement.classList.remove("ios-keyboard-open");
+    },
+  };
+}
 
 export default function Page() {
   const { keyboardHeight, isKeyboardOpen, onInputFocus, onInputBlur } = useKeyboardHandler();
 
-  const [messages, setMessages] = useState<{ id: number; text: string; from: "user" | "bot" }[]>([]);
+  const [messages, setMessages] = useState<
+    { id: number; text: string; from: "user" | "bot" }[]
+  >([]);
   const [inputValue, setInputValue] = useState("");
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Scroll chat to bottom on new message or keyboard open
+  // Scroll chat to bottom on new messages or keyboard open
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, isKeyboardOpen]);
 
-  // Handle send message
+  // Send message handler
   const sendMessage = () => {
     if (!inputValue.trim()) return;
 
@@ -25,7 +73,7 @@ export default function Page() {
     setMessages((prev) => [...prev, userMessage]);
     setInputValue("");
 
-    // Fake bot response with delay
+    // Simulate bot reply
     setTimeout(() => {
       setMessages((prev) => [
         ...prev,
@@ -34,7 +82,7 @@ export default function Page() {
     }, 1000);
   };
 
-  // Handle Enter key for sending message
+  // Handle Enter key to send message
   const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
@@ -57,13 +105,18 @@ export default function Page() {
           padding: "1rem",
           background: "rgba(0,0,0,0.5)",
           color: "white",
+          display: "flex",
+          flexDirection: "column",
+          gap: "0.5rem",
           WebkitOverflowScrolling: "touch",
+          zIndex: 1000,
+          position: "fixed",
         }}
       >
         {messages.map(({ id, text, from }) => (
           <div
             key={id}
-            className={`mb-2 max-w-xs px-3 py-2 rounded-lg ${
+            className={`max-w-xs px-3 py-2 rounded-lg ${
               from === "user" ? "bg-blue-600 self-end ml-auto" : "bg-gray-700"
             }`}
           >
@@ -83,6 +136,8 @@ export default function Page() {
           display: "flex",
           gap: "0.5rem",
           alignItems: "center",
+          position: "fixed",
+          zIndex: 1000,
         }}
       >
         <textarea
@@ -102,6 +157,8 @@ export default function Page() {
             padding: "0.5rem",
             fontSize: "1rem",
             lineHeight: 1.3,
+            color: "white",
+            backgroundColor: "rgba(0,0,0,0.5)",
           }}
           spellCheck={false}
           autoComplete="off"
