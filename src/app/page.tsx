@@ -98,7 +98,7 @@ export default function Page() {
       {/* UI LAYER - SEPARATE FROM SCENE */}
       <div className="fixed inset-0 pointer-events-none z-10">
         
-        {/* CLOSE BUTTON - FIXED AT TOP, NEVER MOVES (like Replika) */}
+        {/* CLOSE BUTTON - FIXED AT TOP, NEVER MOVES */}
         {showMessages && (
           <div className="absolute top-0 left-0 right-0 pointer-events-auto safe-area-inset">
             <div className="flex items-center justify-end py-4 px-4">
@@ -113,39 +113,37 @@ export default function Page() {
           </div>
         )}
 
-        {/* Messages Panel - ONLY THIS SCROLLS UP */}
+        {/* Messages Background Overlay - FIXED, NEVER MOVES */}
         {showMessages && (
           <div 
-            className="absolute inset-0 flex flex-col pointer-events-auto"
+            className="absolute inset-0 pointer-events-auto bg-gradient-to-b from-black/70 via-transparent to-transparent"
             style={{
-              // Only the messages content area moves up
-              transform: `translateY(-${keyboardHeight}px)`,
-              transition: 'transform 0.3s ease-out',
+              // This overlay stays fixed, only the content inside scrolls
               paddingTop: 'env(safe-area-inset-top, 0px)'
             }}
           >
-            <div className="flex-1 overflow-hidden flex flex-col">
-              {/* Spacer for fixed close button */}
-              <div className="h-16" /> {/* Matches the close button height */}
-              
-              {/* Messages */}
-              <div 
-                className="flex-1 overflow-y-auto px-4 messages-container pointer-events-auto"
-                style={{
-                  // Add padding to ensure messages are visible above keyboard
-                  paddingBottom: isKeyboardOpen ? `${keyboardHeight + 20}px` : '0px'
-                }}
-              >
-                <div className="space-y-3 py-2">
-                  {messages.map((msg) => (
-                    <div key={msg.id} className="flex justify-end">
-                      <div className="max-w-[80%] rounded-2xl px-4 py-3 bg-blue-600 text-white text-[15px] leading-relaxed break-words shadow-xl">
-                        {msg.content}
-                      </div>
+            {/* Spacer for fixed close button */}
+            <div className="h-16" />
+            
+            {/* Messages Container - SCROLLS INSIDE THE FIXED OVERLAY */}
+            <div 
+              className="h-full overflow-y-auto px-4 messages-container"
+              style={{
+                // This container scrolls inside the fixed overlay
+                height: `calc(100% - ${keyboardHeight}px - 16px)`,
+                transition: 'height 0.3s ease-out',
+                paddingBottom: isKeyboardOpen ? '20px' : '0px'
+              }}
+            >
+              <div className="space-y-3 py-2">
+                {messages.map((msg) => (
+                  <div key={msg.id} className="flex justify-end">
+                    <div className="max-w-[80%] rounded-2xl px-4 py-3 bg-blue-600 text-white text-[15px] leading-relaxed break-words shadow-xl">
+                      {msg.content}
                     </div>
-                  ))}
-                  <div ref={messagesEndRef} className="h-4" />
-                </div>
+                  </div>
+                ))}
+                <div ref={messagesEndRef} className="h-4" />
               </div>
             </div>
           </div>
