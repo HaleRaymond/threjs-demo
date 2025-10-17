@@ -1,5 +1,6 @@
 @import "tailwindcss";
 
+/* CRITICAL: Prevent any viewport changes from affecting the scene */
 html, body {
   margin: 0;
   padding: 0;
@@ -13,6 +14,7 @@ html, body {
   touch-action: none;
 }
 
+/* iOS viewport fixes */
 @supports (padding: max(0px)) {
   body {
     padding-left: env(safe-area-inset-left);
@@ -24,17 +26,65 @@ html, body {
   }
 }
 
-canvas {
-  display: block;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  transform: none !important;
-  touch-action: none;
+/* iOS Keyboard Open State - CRITICAL FIX */
+html.ios-keyboard-open {
+  position: fixed !important;
+  width: 100% !important;
+  height: 100% !important;
+  overflow: hidden !important;
 }
 
+html.ios-keyboard-open body {
+  position: fixed !important;
+  width: 100% !important;
+  height: 100% !important;
+  overflow: hidden !important;
+}
+
+/* THREE.JS CANVAS - COMPLETELY IMMUNE TO EVERYTHING */
+canvas {
+  display: block;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  transform: none !important;
+  will-change: auto !important;
+  touch-action: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  z-index: 1 !important;
+}
+
+/* SCENE CONTAINER - ABSOLUTELY FIXED */
+.fixed.inset-0.z-0 {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  transform: none !important;
+  z-index: 1 !important;
+}
+
+/* iOS keyboard open state - ensures scene stays put */
+.ios-keyboard-open .fixed.inset-0.z-0 {
+  height: 100vh !important;
+  transform: none !important;
+}
+
+/* Input container fixed positioning */
+.input-container {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 1000;
+}
+
+/* Safe area support */
 .safe-area-inset {
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
@@ -42,22 +92,26 @@ canvas {
   padding-top: env(safe-area-inset-top);
 }
 
+/* Mobile input fixes */
 textarea, input {
   -webkit-appearance: none;
   border-radius: 0;
-  font-size: 16px;
+  font-size: 16px !important;
   transform: translateZ(0);
   min-height: 44px;
 }
 
+/* Remove tap highlights */
 * {
   -webkit-tap-highlight-color: transparent;
 }
 
+/* Prevent pull-to-refresh */
 body {
   overscroll-behavior-y: none;
 }
 
+/* Custom scrollbar */
 .messages-container::-webkit-scrollbar {
   width: 4px;
 }
@@ -71,6 +125,14 @@ body {
   border-radius: 2px;
 }
 
+/* Smooth scrolling for iOS */
 .messages-container {
   -webkit-overflow-scrolling: touch;
+}
+
+/* Prevent zoom on focus */
+@media screen and (max-width: 768px) {
+  textarea {
+    font-size: 16px !important;
+  }
 }
