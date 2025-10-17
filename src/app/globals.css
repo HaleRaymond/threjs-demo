@@ -95,7 +95,21 @@ body {
   border-radius: 2px;
 }
 
-/* Smooth scrolling for iOS */
+
+/* Add this to your existing globals.css */
 .messages-container {
   -webkit-overflow-scrolling: touch;
+  overflow-anchor: none;
+}
+
+/* Ensure the close button stays absolutely fixed */
+.absolute.top-0 {
+  position: absolute !important;
+  top: 0 !important;
+  transform: none !important;
+}
+
+/* Prevent any transformation on close button */
+button {
+  transform: none !important;
 }
