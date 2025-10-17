@@ -1,8 +1,7 @@
 @import "tailwindcss";
 
-/* CRITICAL FIXES */
-html,
-body {
+/* CRITICAL: Prevent any viewport changes from affecting the scene */
+html, body {
   margin: 0;
   padding: 0;
   width: 100%;
@@ -15,7 +14,7 @@ body {
   touch-action: none;
 }
 
-/* Mobile viewport fixes */
+/* iOS viewport fixes */
 @supports (padding: max(0px)) {
   body {
     padding-left: env(safe-area-inset-left);
@@ -27,31 +26,32 @@ body {
   }
 }
 
-/* THREE.JS CANVAS - COMPLETELY IMMUNE */
+/* THREE.JS CANVAS - COMPLETELY IMMUNE TO EVERYTHING */
 canvas {
   display: block;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  /* CRITICAL: No transforms allowed */
-  transform: none;
-  will-change: auto;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  transform: none !important;
+  will-change: auto !important;
   touch-action: none;
   -webkit-touch-callout: none;
   -webkit-user-select: none;
   user-select: none;
+  z-index: 1 !important;
 }
 
-/* SCENE CONTAINER - NO TRANSFORMS */
+/* SCENE CONTAINER - ABSOLUTELY FIXED */
 .fixed.inset-0.z-0 {
-  transform: none;
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  transform: none !important;
+  z-index: 1 !important;
 }
 
 /* Safe area support */
@@ -62,7 +62,7 @@ canvas {
   padding-top: env(safe-area-inset-top);
 }
 
-/* MOBILE INPUT FIXES */
+/* Mobile input fixes */
 textarea, input {
   -webkit-appearance: none;
   border-radius: 0;
