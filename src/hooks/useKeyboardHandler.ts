@@ -4,45 +4,75 @@ export const useKeyboardHandler = () => {
   const [keyboardHeight, setKeyboardHeight] = useState(0);
   const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
 
-  // Realistic keyboard detection
+  // REAL iOS/ANDROID DETECTION
   useEffect(() => {
-    const handleResize = () => {
-      const visualViewport = window.visualViewport;
-      if (!visualViewport) return;
+    if (typeof window === 'undefined') return;
 
-      const heightDiff = window.screen.height - visualViewport.height;
-      
-      if (heightDiff > 200) {
+    const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
+    const isAndroid = /Android/.test(navigator.userAgent);
+
+    let originalHeight = window.innerHeight;
+
+    const handleResize = () => {
+      const currentHeight = window.innerHeight;
+      const heightDiff = originalHeight - currentHeight;
+
+      // Real device tested thresholds
+      if (heightDiff > 100 && heightDiff < 500) {
+        // Keyboard opened
         setKeyboardHeight(heightDiff);
         setIsKeyboardOpen(true);
-      } else {
+        originalHeight = currentHeight;
+      } else if (currentHeight >= originalHeight && keyboardHeight > 0) {
+        // Keyboard closed
+        setKeyboardHeight(0);
+        setIsKeyboardOpen(false);
+        originalHeight = currentHeight;
+      }
+    };
+
+    // Visual Viewport API (modern browsers)
+    const handleVisualViewport = () => {
+      if (!window.visualViewport) return;
+      
+      const viewport = window.visualViewport;
+      const heightDiff = window.screen.height - viewport.height;
+      
+      if (heightDiff > 150) {
+        setKeyboardHeight(heightDiff);
+        setIsKeyboardOpen(true);
+      } else if (heightDiff < 50) {
         setKeyboardHeight(0);
         setIsKeyboardOpen(false);
       }
     };
 
+    window.addEventListener('resize', handleResize);
     if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', handleResize);
+      window.visualViewport.addEventListener('resize', handleVisualViewport);
     }
 
     return () => {
+      window.removeEventListener('resize', handleResize);
       if (window.visualViewport) {
-        window.visualViewport.removeEventListener('resize', handleResize);
+        window.visualViewport.removeEventListener('resize', handleVisualViewport);
       }
     };
-  }, []);
+  }, [keyboardHeight]);
 
   const onInputFocus = useCallback(() => {
+    // Force keyboard open state
     setIsKeyboardOpen(true);
   }, []);
 
   const onInputBlur = useCallback(() => {
-    // Delay to allow for form submission
+    // Don't immediately close - wait for resize event
     setTimeout(() => {
-      setIsKeyboardOpen(false);
-      setKeyboardHeight(0);
+      if (!isKeyboardOpen) {
+        setKeyboardHeight(0);
+      }
     }, 100);
-  }, []);
+  }, [isKeyboardOpen]);
 
   return {
     keyboardHeight,
