@@ -166,9 +166,9 @@ export default function Scene() {
           alpha: false,
           powerPreference: "low-power" // Better for iOS
         }}
-        // FIX: Use container ref instead of canvas ref for eventSource
-        eventSource={containerRef}
-        eventPrefix="client"
+        // FIX: Remove eventSource entirely - it's not needed for our use case
+        // eventSource={containerRef}
+        // eventPrefix="client"
       >
         <color attach="background" args={["#e0e0e0"]} />
         <Suspense fallback={null}>
