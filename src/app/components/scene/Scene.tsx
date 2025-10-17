@@ -84,6 +84,7 @@ function Lights() {
 
 export default function Scene() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // CRITICAL: iOS touch and focus prevention
   useEffect(() => {
@@ -129,7 +130,7 @@ export default function Scene() {
   }, []);
 
   return (
-    <div className="fixed inset-0 z-0">
+    <div ref={containerRef} className="fixed inset-0 z-0">
       <Canvas
         ref={canvasRef}
         camera={{ 
@@ -165,8 +166,8 @@ export default function Scene() {
           alpha: false,
           powerPreference: "low-power" // Better for iOS
         }}
-        // iOS event handling
-        eventSource={canvasRef}
+        // FIX: Use container ref instead of canvas ref for eventSource
+        eventSource={containerRef}
         eventPrefix="client"
       >
         <color attach="background" args={["#e0e0e0"]} />
