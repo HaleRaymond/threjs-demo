@@ -20,7 +20,12 @@ export default function Page() {
 
   // Auto-scroll to bottom
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ 
+        behavior: "smooth",
+        block: "nearest"
+      });
+    }, 100);
   }, [messages, isKeyboardOpen]);
 
   // Auto-resize textarea
@@ -28,7 +33,8 @@ export default function Page() {
     const textarea = textareaRef.current;
     if (textarea) {
       textarea.style.height = 'auto';
-      textarea.style.height = Math.min(textarea.scrollHeight, 120) + 'px';
+      const newHeight = Math.min(textarea.scrollHeight, 120);
+      textarea.style.height = newHeight + 'px';
     }
   }, [input]);
 
@@ -60,100 +66,109 @@ export default function Page() {
     }
   };
 
-  const handleInputFocus = () => {
-    onInputFocus();
-    setIsChatOpen(true);
-  };
-
-  const handleCloseChat = () => {
-    setIsChatOpen(false);
-    if (document.activeElement instanceof HTMLElement) {
-      document.activeElement.blur();
-    }
-  };
-
   return (
-    <div className="fixed inset-0">
-      {/* SCENE - Always visible, fixed position */}
+    <div className="fixed inset-0 bg-black">
+      {/* SCENE - NEVER MOVES */}
       <div className="scene-container">
         <Scene />
       </div>
 
-      {/* CHAT INTERFACE */}
+      {/* CHAT UI - SEPARATE LAYER */}
       <div className="fixed inset-0 z-10 pointer-events-none">
         
-        {/* MESSAGES OVERLAY - Only when chat is open */}
+        {/* MESSAGES OVERLAY */}
         {isChatOpen && (
-          <div className="absolute inset-0 pointer-events-auto safe-area-top">
-            {/* Close button */}
+          <div 
+            className="absolute inset-0 pointer-events-auto safe-area-top transition-transform duration-300 ease-out"
+            style={{
+              // Only messages move up
+              transform: `translateY(-${keyboardHeight}px)`
+            }}
+          >
+            {/* Close button - fixed position */}
             <div className="absolute top-4 right-4 z-20">
               <button
-                onClick={handleCloseChat}
-                className="px-4 py-2 bg-black/60 text-white rounded-full text-sm backdrop-blur-lg"
+                onClick={() => setIsChatOpen(false)}
+                className="px-4 py-2 bg-black/70 text-white rounded-full text-sm backdrop-blur-lg border border-white/20"
               >
                 Close
               </button>
             </div>
 
-            {/* Messages */}
-            <div className="h-full flex flex-col justify-end pb-24">
-              <div className="px-4 space-y-3 overflow-y-auto max-h-full">
-                {messages.map((msg) => (
-                  <div key={msg.id} className="flex justify-end">
-                    <div className="max-w-[80%] rounded-2xl px-4 py-3 bg-blue-600 text-white text-[15px] leading-relaxed">
-                      {msg.content}
+            {/* Messages container */}
+            <div className="h-full flex flex-col justify-end pt-16">
+              <div 
+                className="flex-1 overflow-y-auto px-4 pb-4"
+                style={{
+                  paddingBottom: isKeyboardOpen ? `${keyboardHeight + 80}px` : '0px'
+                }}
+              >
+                <div className="space-y-3">
+                  {messages.map((msg) => (
+                    <div key={msg.id} className="flex justify-end">
+                      <div className="max-w-[80%] rounded-2xl px-4 py-3 bg-blue-600 text-white text-[15px] leading-relaxed break-words shadow-lg">
+                        {msg.content}
+                      </div>
                     </div>
-                  </div>
-                ))}
-                <div ref={messagesEndRef} />
+                  ))}
+                  <div ref={messagesEndRef} />
+                </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* BOTTOM INPUT AREA */}
+        {/* INPUT AREA - FIXED BOTTOM */}
         <div className="absolute bottom-0 left-0 right-0 pointer-events-auto safe-area-bottom">
-          {!isChatOpen ? (
-            // Initial state - "Talk to me" button
-            <div className="px-4 pb-6">
-              <button
-                onClick={() => setIsChatOpen(true)}
-                className="w-full py-4 bg-blue-600 text-white rounded-2xl text-lg font-medium shadow-lg"
-              >
-                Talk to me
-              </button>
-            </div>
-          ) : (
-            // Chat open - Input area
-            <div className="px-4 pb-4 bg-gradient-to-t from-black/50 to-transparent pt-4">
-              <form onSubmit={handleSubmit} className="flex gap-2 items-end">
-                <div className="flex-1">
-                  <textarea
-                    ref={textareaRef}
-                    value={input}
-                    onChange={(e) => setInput(e.target.value)}
-                    onKeyDown={handleKeyDown}
-                    onFocus={handleInputFocus}
-                    onBlur={onInputBlur}
-                    placeholder="Type a message..."
-                    rows={1}
-                    className="w-full bg-white/90 text-black px-4 py-3 rounded-2xl resize-none focus:outline-none placeholder-gray-500"
-                    style={{
-                      minHeight: '48px',
-                      maxHeight: '120px'
-                    }}
-                  />
-                </div>
+          <div 
+            className="transition-transform duration-300 ease-out"
+            style={{
+              // Input moves up with keyboard
+              transform: `translateY(-${keyboardHeight}px)`
+            }}
+          >
+            {!isChatOpen ? (
+              // Initial "Talk to me" button
+              <div className="px-4 pb-6">
                 <button
-                  type="submit"
-                  disabled={!input.trim()}
-                  className="px-4 py-3 bg-blue-600 text-white rounded-2xl font-medium disabled:opacity-50 disabled:cursor-not-allowed"
+                  onClick={() => setIsChatOpen(true)}
+                  className="w-full py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl text-lg font-medium shadow-xl transition-colors"
                 >
-                  Send
+                  Talk to me
                 </button>
-              </form>
-            </div>
-          )}
+              </div>
+            ) : (
+              // Chat input
+              <div className="px-4 pb-4 bg-gradient-to-t from-black/60 via-black/40 to-transparent pt-6">
+                <form onSubmit={handleSubmit} className="flex gap-3 items-end">
+                  <div className="flex-1">
+                    <textarea
+                      ref={textareaRef}
+                      value={input}
+                      onChange={(e) => setInput(e.target.value)}
+                      onKeyDown={handleKeyDown}
+                      onFocus={onInputFocus}
+                      onBlur={onInputBlur}
+                      placeholder="Type a message..."
+                      rows={1}
+                      className="w-full bg-black/70 backdrop-blur-lg text-white px-4 py-3 rounded-2xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400 border border-white/20"
+                      style={{
+                        minHeight: '48px',
+                        maxHeight: '120px'
+                      }}
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={!input.trim()}
+                    className="px-5 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed transition-all font-medium shadow-lg"
+                  >
+                    Send
+                  </button>
+                </form>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
