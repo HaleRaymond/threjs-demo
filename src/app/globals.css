@@ -1,19 +1,30 @@
 @import "tailwindcss";
 
+/* CRITICAL: iOS viewport lock */
 html, body {
   margin: 0;
   padding: 0;
+  width: 100%;
   height: 100%;
   overflow: hidden;
+  position: fixed;
   background: black;
+  overscroll-behavior: none;
 }
 
-/* Prevent blue tap highlight on mobile */
+/* iOS specific fixes */
+@supports (-webkit-touch-callout: none) {
+  body {
+    -webkit-overflow-scrolling: auto;
+  }
+}
+
+/* Remove tap highlights */
 * {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Custom scrollbar for messages */
+/* Custom scrollbar */
 .messages-container::-webkit-scrollbar {
   width: 4px;
 }
@@ -23,6 +34,11 @@ html, body {
 }
 
 .messages-container::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(255, 255, 255, 0.2);
   border-radius: 2px;
+}
+
+/* Smooth scrolling */
+.messages-container {
+  -webkit-overflow-scrolling: touch;
 }
