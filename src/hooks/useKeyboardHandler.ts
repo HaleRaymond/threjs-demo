@@ -7,21 +7,25 @@ export const useKeyboardHandler = () => {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
+    const isIOS = /iPhone|iPad|iPod/.test(navigator.userAgent);
     let originalHeight = window.innerHeight;
 
     const handleResize = () => {
       const currentHeight = window.innerHeight;
       const heightDiff = originalHeight - currentHeight;
 
-      if (heightDiff > 100 && heightDiff < 500) {
-        setKeyboardHeight(heightDiff);
+      if (heightDiff > 100) {
+        // Keyboard opened - use consistent heights for smooth animation
+        const estimatedHeight = isIOS ? 336 : 300;
+        setKeyboardHeight(estimatedHeight);
         setIsKeyboardOpen(true);
-        originalHeight = currentHeight;
       } else if (currentHeight >= originalHeight) {
+        // Keyboard closed
         setKeyboardHeight(0);
         setIsKeyboardOpen(false);
-        originalHeight = currentHeight;
       }
+      
+      originalHeight = currentHeight;
     };
 
     window.addEventListener('resize', handleResize);
@@ -39,7 +43,7 @@ export const useKeyboardHandler = () => {
     setTimeout(() => {
       setIsKeyboardOpen(false);
       setKeyboardHeight(0);
-    }, 100);
+    }, 150);
   }, []);
 
   return {
