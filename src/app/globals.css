@@ -106,6 +106,8 @@ canvas {
   z-index: 999;
 }
 
+
+
 /* Safe area support */
 .safe-area-inset {
   padding-left: env(safe-area-inset-left);
@@ -150,6 +152,22 @@ body {
 /* Smooth scrolling for iOS */
 .messages-container {
   -webkit-overflow-scrolling: touch;
+}
+
+/* INPUT AREA - FIXED AT BOTTOM */
+.input-area {
+  position: fixed !important;
+  bottom: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  z-index: 1000 !important;
+  transform: none !important;
+  /* iOS will automatically position this above keyboard */
+}
+
+/* Remove the transform from input-area in movable-ui */
+.movable-ui.input-area {
+  transform: none !important;
 }
 
 /* iOS viewport fixes */
