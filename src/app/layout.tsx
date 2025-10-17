@@ -26,9 +26,7 @@ export default function RootLayout({
         margin: 0, 
         padding: 0, 
         height: '100%', 
-        overflow: 'hidden',
-        position: 'fixed',
-        width: '100%'
+        overflow: 'hidden'
       }}>
         {children}
       </body>
