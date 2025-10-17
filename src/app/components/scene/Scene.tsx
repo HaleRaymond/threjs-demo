@@ -84,36 +84,70 @@ function Lights() {
 
 export default function Scene() {
   return (
-    <div className="w-full h-full"> {/* Container div */}
-      <Canvas
-        camera={{ 
-          position: [0, 1.6, 3], 
-          fov: 45,
-          near: 0.1,
-          far: 1000
-        }}
-        onCreated={({ gl }) => {
-          gl.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-          gl.shadowMap.enabled = true;
-          gl.shadowMap.type = THREE.PCFSoftShadowMap;
-        }}
-      >
-        <color attach="background" args={["#e0e0e0"]} />
-        <Suspense fallback={null}>
-          <Lights />
-          <Avatar />
-          <Floor />
-        </Suspense>
+    <Canvas
+      camera={{ 
+        position: [0, 1.6, 3], 
+        fov: 45,
+        near: 0.1,
+        far: 1000
+      }}
+      onCreated={({ gl }) => {
+        // Performance optimizations
+        gl.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        gl.shadowMap.enabled = true;
+        gl.shadowMap.type = THREE.PCFSoftShadowMap;
+      }}
+      style={{ 
+        // CRITICAL: Must match the container styling
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100vw',
+        height: '100vh',
+        display: 'block',
         
-        <OrbitControls 
-          target={[0, 1.0, 0]}
-          enablePan={true}
-          enableZoom={true}
-          enableRotate={true}
-          minDistance={1}
-          maxDistance={10}
-        />
-      </Canvas>
-    </div>
+        // iOS optimizations
+        touchAction: 'none',
+        WebkitTouchCallout: 'none',
+        WebkitUserSelect: 'none',
+        userSelect: 'none',
+        
+        // Ensure it stays behind the UI
+        zIndex: 1
+      }}
+      gl={{
+        antialias: true,
+        alpha: false,
+        powerPreference: "high-performance"
+      }}
+      // Use the document body for events to avoid conflicts
+      eventSource={typeof document !== 'undefined' ? document.body : undefined}
+    >
+      <color attach="background" args={["#e0e0e0"]} />
+      <Suspense fallback={null}>
+        <Lights />
+        <Avatar />
+        <Floor />
+      </Suspense>
+      
+      <OrbitControls 
+        target={[0, 1.0, 0]}
+        enablePan={true}
+        enableZoom={true}
+        enableRotate={true}
+        minDistance={1}
+        maxDistance={10}
+        
+        // Mobile optimizations
+        touches={{
+          ONE: THREE.TOUCH.ROTATE,
+          TWO: THREE.TOUCH.DOLLY_PAN
+        }}
+        
+        // Performance
+        enableDamping={true}
+        dampingFactor={0.05}
+      />
+    </Canvas>
   );
 }
