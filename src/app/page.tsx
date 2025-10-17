@@ -47,7 +47,6 @@ export default function Page() {
     ]);
     setInput("");
     
-    // Reset textarea
     setTimeout(() => {
       if (textareaRef.current) {
         textareaRef.current.style.height = '48px';
@@ -100,8 +99,8 @@ export default function Page() {
         
         {/* CLOSE BUTTON - FIXED AT TOP, NEVER MOVES */}
         {showMessages && (
-          <div className="absolute top-0 left-0 right-0 pointer-events-auto safe-area-inset">
-            <div className="flex items-center justify-end py-4 px-4">
+          <div className="absolute top-0 left-0 right-0 pointer-events-auto">
+            <div className="flex items-center justify-end py-4 px-4 safe-area-inset">
               <button
                 onClick={closeMessages}
                 className="px-4 py-2 bg-black/60 text-white/90 rounded-full text-sm backdrop-blur-lg border border-white/10"
@@ -113,43 +112,48 @@ export default function Page() {
           </div>
         )}
 
-        {/* Messages Background Overlay - FIXED, NEVER MOVES */}
+        {/* MESSAGES CONTENT - THIS MOVES UP (like Replika) */}
         {showMessages && (
           <div 
-            className="absolute inset-0 pointer-events-auto bg-gradient-to-b from-black/70 via-transparent to-transparent"
+            className="absolute inset-0 pointer-events-auto"
             style={{
-              // This overlay stays fixed, only the content inside scrolls
+              // THE KEY FIX: Only the content area moves up
+              transform: `translateY(-${keyboardHeight}px)`,
+              transition: 'transform 0.3s ease-out',
               paddingTop: 'env(safe-area-inset-top, 0px)'
             }}
           >
-            {/* Spacer for fixed close button */}
-            <div className="h-16" />
+            {/* Background overlay - moves with content (like Replika) */}
+            <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-transparent to-transparent" />
             
-            {/* Messages Container - SCROLLS INSIDE THE FIXED OVERLAY */}
-            <div 
-              className="h-full overflow-y-auto px-4 messages-container"
-              style={{
-                // This container scrolls inside the fixed overlay
-                height: `calc(100% - ${keyboardHeight}px - 16px)`,
-                transition: 'height 0.3s ease-out',
-                paddingBottom: isKeyboardOpen ? '20px' : '0px'
-              }}
-            >
-              <div className="space-y-3 py-2">
-                {messages.map((msg) => (
-                  <div key={msg.id} className="flex justify-end">
-                    <div className="max-w-[80%] rounded-2xl px-4 py-3 bg-blue-600 text-white text-[15px] leading-relaxed break-words shadow-xl">
-                      {msg.content}
+            {/* Messages container */}
+            <div className="relative h-full flex flex-col">
+              {/* Spacer for close button */}
+              <div className="h-16" />
+              
+              {/* Scrollable messages */}
+              <div 
+                className="flex-1 overflow-y-auto px-4 messages-container"
+                style={{
+                  paddingBottom: isKeyboardOpen ? '20px' : '0px'
+                }}
+              >
+                <div className="space-y-3 py-2">
+                  {messages.map((msg) => (
+                    <div key={msg.id} className="flex justify-end">
+                      <div className="max-w-[80%] rounded-2xl px-4 py-3 bg-blue-600 text-white text-[15px] leading-relaxed break-words shadow-xl">
+                        {msg.content}
+                      </div>
                     </div>
-                  </div>
-                ))}
-                <div ref={messagesEndRef} className="h-4" />
+                  ))}
+                  <div ref={messagesEndRef} className="h-4" />
+                </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* Input Area - MOVES UP WITH KEYBOARD */}
+        {/* INPUT AREA - MOVES UP WITH KEYBOARD */}
         <div 
           className="absolute bottom-0 left-0 right-0 pointer-events-auto"
           style={{
