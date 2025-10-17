@@ -1,58 +1,10 @@
 @import "tailwindcss";
 
-/* COMPLETE IOS VIEWPORT LOCK */
 html, body {
   margin: 0;
   padding: 0;
-  width: 100%;
   height: 100%;
   overflow: hidden;
-  position: fixed;
-  background: black;
-  overscroll-behavior: none;
-}
-
-/* IOS SPECIFIC - PREVENT VIEWPORT MOVEMENT */
-@supports (-webkit-touch-callout: none) {
-  html {
-    position: fixed;
-    height: 100%;
-    overflow: hidden;
-  }
-  
-  body {
-    position: fixed;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-  }
-}
-
-/* SCENE - ABSOLUTELY FIXED ON IOS */
-.scene-container {
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  width: 100vw !important;
-  height: 100vh !important;
-  z-index: 1 !important;
-  transform: none !important;
-}
-
-canvas {
-  position: fixed !important;
-  top: 0 !important;
-  left: 0 !important;
-  width: 100vw !important;
-  height: 100vh !important;
-  z-index: 1 !important;
-  transform: none !important;
-  touch-action: none;
-}
-
-/* Safe areas */
-.safe-area-top {
-  padding-top: env(safe-area-inset-top);
 }
 
 .safe-area-bottom {
