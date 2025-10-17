@@ -6,19 +6,13 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  interactiveWidget: "resizes-content", // Changed for better behavior
+  interactiveWidget: "resizes-content",
   viewportFit: "cover",
-  themeColor: "#000000",
 };
 
 export const metadata: Metadata = {
   title: "3Ds",
   description: "Three.js with chat",
-  appleWebApp: {
-    capable: true,
-    statusBarStyle: "black-translucent",
-    title: "3Ds",
-  },
 };
 
 export default function RootLayout({
@@ -27,19 +21,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="h-full">
-      <head>
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-        <meta name="apple-mobile-web-app-title" content="3Ds" />
-        <meta name="format-detection" content="telephone=no" />
-        <meta name="mobile-web-app-capable" content="yes" />
-        <meta name="handheldFriendly" content="true" />
-        
-        {/* Critical for iOS behavior */}
-        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
-      </head>
-      <body className="h-full">
+    <html lang="en" style={{ height: '100%' }}>
+      <body style={{ 
+        margin: 0, 
+        padding: 0, 
+        height: '100%', 
+        overflow: 'hidden',
+        position: 'fixed',
+        width: '100%'
+      }}>
         {children}
       </body>
     </html>
