@@ -1,6 +1,5 @@
 @import "tailwindcss";
 
-/* CRITICAL: Simple mobile fixes */
 html, body {
   margin: 0;
   padding: 0;
@@ -10,28 +9,32 @@ html, body {
   position: fixed;
   background: black;
   overscroll-behavior: none;
+  -webkit-overflow-scrolling: auto;
+  touch-action: none;
 }
 
-/* iOS safe areas */
 @supports (padding: max(0px)) {
   body {
     padding-left: env(safe-area-inset-left);
     padding-right: env(safe-area-inset-right);
     padding-top: env(safe-area-inset-top);
     padding-bottom: env(safe-area-inset-bottom);
+    height: -webkit-fill-available;
+    height: fill-available;
   }
 }
 
-/* Three.js canvas - just make it fixed */
 canvas {
+  display: block;
   position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
   height: 100vh;
+  transform: none !important;
+  touch-action: none;
 }
 
-/* Safe area support */
 .safe-area-inset {
   padding-left: env(safe-area-inset-left);
   padding-right: env(safe-area-inset-right);
@@ -39,18 +42,35 @@ canvas {
   padding-top: env(safe-area-inset-top);
 }
 
-/* Mobile input fixes */
-textarea {
+textarea, input {
+  -webkit-appearance: none;
+  border-radius: 0;
   font-size: 16px;
+  transform: translateZ(0);
   min-height: 44px;
 }
 
-/* Remove tap highlights */
 * {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Smooth scrolling */
+body {
+  overscroll-behavior-y: none;
+}
+
+.messages-container::-webkit-scrollbar {
+  width: 4px;
+}
+
+.messages-container::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.messages-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+}
+
 .messages-container {
   -webkit-overflow-scrolling: touch;
 }
