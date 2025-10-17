@@ -18,11 +18,12 @@ export default function Page() {
   
   const { keyboardHeight, isKeyboardOpen, onInputFocus, onInputBlur } = useKeyboardHandler();
 
-  // iOS touch prevention
+  // iOS touch prevention - ONLY PREVENT ON NON-INPUT ELEMENTS
   useEffect(() => {
     const preventFocus = (e: TouchEvent) => {
       const target = e.target as HTMLElement;
-      if (target && !['TEXTAREA', 'INPUT'].includes(target.tagName)) {
+      // ONLY prevent on non-input elements
+      if (target && !['TEXTAREA', 'INPUT', 'BUTTON'].includes(target.tagName)) {
         e.preventDefault();
       }
     };
@@ -112,7 +113,7 @@ export default function Page() {
         <Scene />
       </div>
 
-      {/* UI - SEPARATE MOVABLE LAYER */}
+      {/* UI - SEPARATE LAYER */}
       <div className="ui-container">
         
         {/* CLOSE BUTTON - FIXED POSITION */}
@@ -135,7 +136,6 @@ export default function Page() {
           <div 
             className="movable-ui messages-panel"
             style={{
-              // Only move up by keyboard height, but ensure it stays visible
               transform: `translateY(-${keyboardHeight}px)`,
               paddingTop: 'env(safe-area-inset-top, 0px)'
             }}
@@ -148,7 +148,6 @@ export default function Page() {
               <div 
                 className="flex-1 overflow-y-auto px-4 messages-container"
                 style={{
-                  // Extra padding to ensure messages are visible above keyboard
                   paddingBottom: isKeyboardOpen ? '120px' : '0px'
                 }}
               >
@@ -167,13 +166,10 @@ export default function Page() {
           </div>
         )}
 
-        {/* INPUT AREA - FIXED POSITION AT BOTTOM */}
+        {/* INPUT AREA - FIXED AT BOTTOM, ALLOW FOCUS */}
         <div 
           className="input-area"
           style={{
-            // CRITICAL FIX: Don't transform the input area
-            // It will naturally stay above the keyboard
-            transform: 'none',
             position: 'fixed',
             bottom: 0,
             left: 0,
@@ -199,6 +195,13 @@ export default function Page() {
                     minHeight: '48px',
                     maxHeight: '120px'
                   }}
+                  // CRITICAL: Ensure textarea can receive focus
+                  onClick={(e) => {
+                    e.stopPropagation();
+                  }}
+                  onTouchStart={(e) => {
+                    e.stopPropagation();
+                  }}
                 />
               </div>
               <button
@@ -206,6 +209,9 @@ export default function Page() {
                 disabled={!input.trim()}
                 className="px-5 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium flex-shrink-0 shadow-xl"
                 style={{ minHeight: '48px' }}
+                // Allow button to work
+                onClick={(e) => e.stopPropagation()}
+                onTouchStart={(e) => e.stopPropagation()}
               >
                 Send
               </button>
