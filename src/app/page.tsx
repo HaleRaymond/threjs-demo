@@ -41,9 +41,9 @@ export default function Page() {
     }
   }, [input]);
 
-  // Close modal when clicking backdrop
+  // Close modal when clicking backdrop - FIXED TYPE
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const handleClickOutside = (event: Event) => {
       if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
         closeChat();
       }
@@ -51,12 +51,12 @@ export default function Page() {
 
     if (isChatOpen) {
       document.addEventListener('mousedown', handleClickOutside);
-      document.addEventListener('touchstart', handleClickOutside);
+      document.addEventListener('touchstart', handleClickOutside as EventListener);
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('touchstart', handleClickOutside);
+      document.removeEventListener('touchstart', handleClickOutside as EventListener);
     };
   }, [isChatOpen]);
 
