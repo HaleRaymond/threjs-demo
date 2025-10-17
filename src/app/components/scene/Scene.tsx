@@ -85,25 +85,45 @@ function Lights() {
 export default function Scene() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // CRITICAL: iOS Chrome/Safari focus prevention
+  // CRITICAL: iOS touch and focus prevention
   useEffect(() => {
     const preventFocus = (e: TouchEvent) => {
       // Prevent focus on canvas touch (which causes keyboard issues)
-      if (e.target === canvasRef.current) {
-        e.preventDefault();
-      }
+      e.preventDefault();
+      e.stopPropagation();
+    };
+
+    const preventTouchMove = (e: TouchEvent) => {
+      // Prevent scroll on canvas
+      e.preventDefault();
+    };
+
+    const preventContextMenu = (e: Event) => {
+      // Prevent context menu on long press
+      e.preventDefault();
     };
 
     const canvas = canvasRef.current;
     if (canvas) {
+      // Add all touch event listeners with passive: false for control
       canvas.addEventListener('touchstart', preventFocus, { passive: false });
       canvas.addEventListener('touchend', preventFocus, { passive: false });
+      canvas.addEventListener('touchmove', preventTouchMove, { passive: false });
+      canvas.addEventListener('touchcancel', preventFocus, { passive: false });
+      canvas.addEventListener('contextmenu', preventContextMenu);
+      
+      // Critical: Set tabIndex to -1 to prevent focus
+      canvas.setAttribute('tabindex', '-1');
+      canvas.style.outline = 'none';
     }
 
     return () => {
       if (canvas) {
         canvas.removeEventListener('touchstart', preventFocus);
         canvas.removeEventListener('touchend', preventFocus);
+        canvas.removeEventListener('touchmove', preventTouchMove);
+        canvas.removeEventListener('touchcancel', preventFocus);
+        canvas.removeEventListener('contextmenu', preventContextMenu);
       }
     };
   }, []);
@@ -123,12 +143,6 @@ export default function Scene() {
           gl.setPixelRatio(Math.min(window.devicePixelRatio, 1)); // Lower for iOS
           gl.shadowMap.enabled = true;
           gl.shadowMap.type = THREE.PCFSoftShadowMap;
-          
-          // iOS-specific context settings
-          const context = gl.getContext();
-          if (context instanceof WebGLRenderingContext) {
-            context.disable(context.DEPTH_TEST);
-          }
         }}
         style={{ 
           position: 'fixed',
@@ -142,7 +156,9 @@ export default function Scene() {
           WebkitTouchCallout: 'none',
           WebkitUserSelect: 'none',
           userSelect: 'none',
-          zIndex: 1
+          zIndex: 1,
+          // Prevent focus outline
+          outline: 'none'
         }}
         gl={{
           antialias: false, // Disable for iOS performance
