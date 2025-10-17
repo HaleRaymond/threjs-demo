@@ -115,9 +115,9 @@ export default function Page() {
       {/* UI - SEPARATE MOVABLE LAYER */}
       <div className="ui-container">
         
-        {/* CLOSE BUTTON */}
+        {/* CLOSE BUTTON - FIXED POSITION */}
         {showMessages && (
-          <div className="movable-ui absolute top-0 left-0 right-0 safe-area-inset">
+          <div className="absolute top-0 left-0 right-0 safe-area-inset z-20">
             <div className="flex items-center justify-end py-4 px-4">
               <button
                 onClick={closeMessages}
@@ -135,17 +135,21 @@ export default function Page() {
           <div 
             className="movable-ui messages-panel"
             style={{
+              // Only move up by keyboard height, but ensure it stays visible
               transform: `translateY(-${keyboardHeight}px)`,
               paddingTop: 'env(safe-area-inset-top, 0px)'
             }}
           >
             <div className="flex-1 overflow-hidden flex flex-col h-full">
+              {/* Spacer for close button */}
               <div className="h-16" />
               
+              {/* Messages */}
               <div 
                 className="flex-1 overflow-y-auto px-4 messages-container"
                 style={{
-                  paddingBottom: isKeyboardOpen ? `${keyboardHeight + 20}px` : '0px'
+                  // Extra padding to ensure messages are visible above keyboard
+                  paddingBottom: isKeyboardOpen ? '120px' : '0px'
                 }}
               >
                 <div className="space-y-3 py-2">
@@ -163,12 +167,19 @@ export default function Page() {
           </div>
         )}
 
-        {/* INPUT AREA - MOVES WITH KEYBOARD */}
+        {/* INPUT AREA - FIXED POSITION AT BOTTOM */}
         <div 
-          className="movable-ui input-area"
+          className="input-area"
           style={{
-            transform: `translateY(-${keyboardHeight}px)`,
-            paddingBottom: 'env(safe-area-inset-bottom, 0px)'
+            // CRITICAL FIX: Don't transform the input area
+            // It will naturally stay above the keyboard
+            transform: 'none',
+            position: 'fixed',
+            bottom: 0,
+            left: 0,
+            right: 0,
+            paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+            zIndex: 1000
           }}
         >
           <div className="px-4 pb-4 bg-gradient-to-t from-black/50 to-transparent pt-6">
