@@ -7,29 +7,27 @@ export const useKeyboardHandler = () => {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    const handleResize = () => {
-      const visualViewport = window.visualViewport;
-      if (!visualViewport) return;
+    let originalHeight = window.innerHeight;
 
-      const keyboardHeight = window.innerHeight - visualViewport.height;
-      
-      if (keyboardHeight > 100) {
-        setKeyboardHeight(keyboardHeight);
+    const handleResize = () => {
+      const currentHeight = window.innerHeight;
+      const heightDiff = originalHeight - currentHeight;
+
+      if (heightDiff > 100 && heightDiff < 500) {
+        setKeyboardHeight(heightDiff);
         setIsKeyboardOpen(true);
-      } else {
+        originalHeight = currentHeight;
+      } else if (currentHeight >= originalHeight) {
         setKeyboardHeight(0);
         setIsKeyboardOpen(false);
+        originalHeight = currentHeight;
       }
     };
 
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', handleResize);
-    }
+    window.addEventListener('resize', handleResize);
 
     return () => {
-      if (window.visualViewport) {
-        window.visualViewport.removeEventListener('resize', handleResize);
-      }
+      window.removeEventListener('resize', handleResize);
     };
   }, []);
 
@@ -38,7 +36,10 @@ export const useKeyboardHandler = () => {
   }, []);
 
   const onInputBlur = useCallback(() => {
-    setTimeout(() => setIsKeyboardOpen(false), 100);
+    setTimeout(() => {
+      setIsKeyboardOpen(false);
+      setKeyboardHeight(0);
+    }, 100);
   }, []);
 
   return {
