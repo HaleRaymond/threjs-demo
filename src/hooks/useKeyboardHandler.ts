@@ -7,24 +7,30 @@ export const useKeyboardHandler = () => {
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
-    let originalHeight = window.innerHeight;
-
     const handleResize = () => {
-      const currentHeight = window.innerHeight;
-      const heightDiff = originalHeight - currentHeight;
+      const visualViewport = window.visualViewport;
+      if (!visualViewport) return;
 
-      if (heightDiff > 100) {
-        setKeyboardHeight(heightDiff);
+      const keyboardHeight = window.innerHeight - visualViewport.height;
+      
+      if (keyboardHeight > 100) {
+        setKeyboardHeight(keyboardHeight);
         setIsKeyboardOpen(true);
       } else {
         setKeyboardHeight(0);
         setIsKeyboardOpen(false);
       }
-      originalHeight = currentHeight;
     };
 
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleResize);
+    }
+
+    return () => {
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleResize);
+      }
+    };
   }, []);
 
   const onInputFocus = useCallback(() => {
