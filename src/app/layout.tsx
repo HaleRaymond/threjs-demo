@@ -6,7 +6,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   userScalable: false,
-  interactiveWidget: "overlays-content",
+  interactiveWidget: "resizes-content", // Changed for better behavior
   viewportFit: "cover",
   themeColor: "#000000",
 };
@@ -35,6 +35,9 @@ export default function RootLayout({
         <meta name="format-detection" content="telephone=no" />
         <meta name="mobile-web-app-capable" content="yes" />
         <meta name="handheldFriendly" content="true" />
+        
+        {/* Critical for iOS behavior */}
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
       </head>
       <body className="h-full">
         {children}
