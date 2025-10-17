@@ -16,44 +16,33 @@ export const useKeyboardHandler = (): KeyboardState => {
      (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
 
   const updateKeyboardState = useCallback((height: number) => {
-    console.log('Setting keyboard height:', height);
+    console.log('Keyboard state:', height);
     const isOpening = height > 100;
     setKeyboardHeight(height);
     setIsKeyboardOpen(isOpening);
   }, []);
 
-  // SIMPLE APPROACH: Use fixed keyboard heights for iOS
+  // SIMPLE FOCUS/BLUR HANDLERS
   const handleFocus = useCallback(() => {
-    console.log('Input focused');
+    console.log('Input focused - opening keyboard');
     
+    // Immediately set keyboard state for iOS
     if (isIOS) {
-      // Use known iOS keyboard heights
       const isLandscape = window.innerWidth > window.innerHeight;
       const estimatedHeight = isLandscape ? 200 : 336;
-      
-      setTimeout(() => {
-        updateKeyboardState(estimatedHeight);
-      }, 100);
+      updateKeyboardState(estimatedHeight);
     } else {
-      // Estimate for Android/other
-      setTimeout(() => {
-        updateKeyboardState(300);
-      }, 100);
+      updateKeyboardState(300);
     }
   }, [isIOS, updateKeyboardState]);
 
   const handleBlur = useCallback(() => {
-    console.log('Input blurred');
+    console.log('Input blurred - closing keyboard');
     
+    // Close keyboard after delay
     setTimeout(() => {
-      const activeElement = document.activeElement;
-      const isTextInput = activeElement?.tagName === 'TEXTAREA' || 
-                         activeElement?.tagName === 'INPUT';
-      
-      if (!isTextInput) {
-        updateKeyboardState(0);
-      }
-    }, 150);
+      updateKeyboardState(0);
+    }, 100);
   }, [updateKeyboardState]);
 
   return {
