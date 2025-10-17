@@ -1,196 +1,207 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { FormEvent, KeyboardEvent, useState, useRef, useEffect } from "react";
 import Scene from "./components/scene/Scene";
+import { useKeyboardHandler } from "../hooks/useKeyboardHandler";
 
-type Message = {
-  id: number;
-  text: string;
-  from: "user" | "bot";
+type ChatMessage = {
+  id: string;
+  content: string;
 };
 
-function useKeyboardHandler() {
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
-  const [isKeyboardOpen, setIsKeyboardOpen] = useState(false);
+export default function Page() {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [input, setInput] = useState("");
+  const [showMessages, setShowMessages] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  
+  const { keyboardHeight, isKeyboardOpen, onInputFocus, onInputBlur } = useKeyboardHandler();
 
+  // iOS touch prevention
   useEffect(() => {
-    const onFocusIn = (e: FocusEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) {
-        setIsKeyboardOpen(true);
-        const viewportHeight = window.visualViewport?.height;
-        if (viewportHeight) {
-          setKeyboardHeight(window.innerHeight - viewportHeight);
-        } else {
-          setKeyboardHeight(300); // fallback height
-        }
-        document.documentElement.classList.add("ios-keyboard-open");
+    const preventFocus = (e: TouchEvent) => {
+      const target = e.target as HTMLElement;
+      if (target && !['TEXTAREA', 'INPUT'].includes(target.tagName)) {
+        e.preventDefault();
       }
     };
 
-    const onFocusOut = (e: FocusEvent) => {
-      const target = e.target as HTMLElement | null;
-      if (target && (target.tagName === "INPUT" || target.tagName === "TEXTAREA")) {
-        setIsKeyboardOpen(false);
-        setKeyboardHeight(0);
-        document.documentElement.classList.remove("ios-keyboard-open");
-      }
-    };
-
-    window.addEventListener("focusin", onFocusIn);
-    window.addEventListener("focusout", onFocusOut);
-
+    document.addEventListener('touchstart', preventFocus, { passive: false });
+    
     return () => {
-      window.removeEventListener("focusin", onFocusIn);
-      window.removeEventListener("focusout", onFocusOut);
+      document.removeEventListener('touchstart', preventFocus);
     };
   }, []);
 
-  return {
-    keyboardHeight,
-    isKeyboardOpen,
-    onInputFocus: () => {},
-    onInputBlur: () => {},
-  };
-}
-
-export default function Page() {
-  const { keyboardHeight, isKeyboardOpen, onInputFocus, onInputBlur } = useKeyboardHandler();
-
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [inputValue, setInputValue] = useState("");
-  const inputRef = useRef<HTMLTextAreaElement>(null);
-  const messagesEndRef = useRef<HTMLDivElement>(null);
-
+  // Auto-scroll to bottom
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ 
+        behavior: "smooth",
+        block: "end"
+      });
+    }, 100);
   }, [messages, isKeyboardOpen]);
 
+  // Auto-resize textarea
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      textarea.style.height = 'auto';
+      const newHeight = Math.min(textarea.scrollHeight, 120);
+      textarea.style.height = newHeight + 'px';
+    }
+  }, [input]);
+
   const sendMessage = () => {
-    if (!inputValue.trim()) return;
+    if (!input.trim()) return;
 
-    const userMessage: Message = { id: Date.now(), text: inputValue.trim(), from: "user" };
-    setMessages((prev) => [...prev, userMessage]);
-    setInputValue("");
-
+    setMessages((prev) => [
+      ...prev,
+      { id: Date.now().toString(), content: input.trim() },
+    ]);
+    setInput("");
+    
     setTimeout(() => {
-      const botMessage: Message = { id: Date.now() + 1, text: `Echo: ${userMessage.text}`, from: "bot" };
-      setMessages((prev) => [...prev, botMessage]);
-    }, 1000);
+      if (textareaRef.current) {
+        textareaRef.current.style.height = '48px';
+      }
+    }, 50);
   };
 
-  const onKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleSubmit = (e: FormEvent) => {
+    e.preventDefault();
+    sendMessage();
+  };
+
+  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
-      inputRef.current?.blur();
+    }
+  };
+
+  const handleTextareaFocus = () => {
+    setShowMessages(true);
+    onInputFocus();
+    
+    setTimeout(() => {
+      messagesEndRef.current?.scrollIntoView({ 
+        behavior: "smooth",
+        block: "end"
+      });
+    }, 350);
+  };
+
+  const handleTextareaBlur = () => {
+    onInputBlur();
+  };
+
+  const closeMessages = () => {
+    setShowMessages(false);
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
     }
   };
 
   return (
-    <>
-      <Scene />
+    <div className="fixed inset-0 bg-gray-900">
+      {/* SCENE - SEPARATE FIXED LAYER */}
+      <div className="scene-container">
+        <Scene />
+      </div>
 
-      <div
-        className="messages-panel safe-area-inset"
-        style={{
-          bottom: isKeyboardOpen ? keyboardHeight : 0,
-          transition: "bottom 0.3s ease-out",
-          overflowY: "auto",
-          position: "fixed",
-          top: 0,
-          left: 0,
-          right: 0,
-          zIndex: 1000,
-          backgroundColor: "rgba(255,255,255,0.9)",
-        }}
-      >
-        <div className="messages-container px-4 py-2">
-          {messages.map(({ id, text, from }) => (
-            <div
-              key={id}
-              style={{
-                marginBottom: "0.5rem",
-                textAlign: from === "user" ? "right" : "left",
-                color: from === "user" ? "#007aff" : "#000",
-              }}
-            >
-              <span
+      {/* UI - SEPARATE MOVABLE LAYER */}
+      <div className="ui-container">
+        
+        {/* CLOSE BUTTON */}
+        {showMessages && (
+          <div className="movable-ui absolute top-0 left-0 right-0 safe-area-inset">
+            <div className="flex items-center justify-end py-4 px-4">
+              <button
+                onClick={closeMessages}
+                className="px-4 py-2 bg-black/60 text-white/90 rounded-full text-sm backdrop-blur-lg border border-white/10"
+                style={{ minHeight: '44px' }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* MESSAGES PANEL - MOVES WITH KEYBOARD */}
+        {showMessages && (
+          <div 
+            className="movable-ui messages-panel"
+            style={{
+              transform: `translateY(-${keyboardHeight}px)`,
+              paddingTop: 'env(safe-area-inset-top, 0px)'
+            }}
+          >
+            <div className="flex-1 overflow-hidden flex flex-col h-full">
+              <div className="h-16" />
+              
+              <div 
+                className="flex-1 overflow-y-auto px-4 messages-container"
                 style={{
-                  display: "inline-block",
-                  padding: "0.5rem 1rem",
-                  borderRadius: "20px",
-                  backgroundColor: from === "user" ? "#d0e8ff" : "#e5e5ea",
-                  maxWidth: "80%",
-                  wordBreak: "break-word",
+                  paddingBottom: isKeyboardOpen ? `${keyboardHeight + 20}px` : '0px'
                 }}
               >
-                {text}
-              </span>
+                <div className="space-y-3 py-2">
+                  {messages.map((msg) => (
+                    <div key={msg.id} className="flex justify-end">
+                      <div className="max-w-[80%] rounded-2xl px-4 py-3 bg-blue-600 text-white text-[15px] leading-relaxed break-words shadow-xl">
+                        {msg.content}
+                      </div>
+                    </div>
+                  ))}
+                  <div ref={messagesEndRef} className="h-4" />
+                </div>
+              </div>
             </div>
-          ))}
-          <div ref={messagesEndRef} />
+          </div>
+        )}
+
+        {/* INPUT AREA - MOVES WITH KEYBOARD */}
+        <div 
+          className="movable-ui input-area"
+          style={{
+            transform: `translateY(-${keyboardHeight}px)`,
+            paddingBottom: 'env(safe-area-inset-bottom, 0px)'
+          }}
+        >
+          <div className="px-4 pb-4 bg-gradient-to-t from-black/50 to-transparent pt-6">
+            <form onSubmit={handleSubmit} className="flex gap-3 items-end">
+              <div className="flex-1 relative">
+                <textarea
+                  ref={textareaRef}
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  onFocus={handleTextareaFocus}
+                  onBlur={handleTextareaBlur}
+                  placeholder="Type a message..."
+                  rows={1}
+                  className="w-full bg-black/60 backdrop-blur-lg text-white px-4 py-3 rounded-2xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400 border border-white/10 text-[16px]"
+                  style={{
+                    minHeight: '48px',
+                    maxHeight: '120px'
+                  }}
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={!input.trim()}
+                className="px-5 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600 text-white rounded-2xl disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 font-medium flex-shrink-0 shadow-xl"
+                style={{ minHeight: '48px' }}
+              >
+                Send
+              </button>
+            </form>
+          </div>
         </div>
       </div>
-
-      <div
-        className="input-container safe-area-inset"
-        style={{
-          bottom: isKeyboardOpen ? keyboardHeight : 0,
-          transition: "bottom 0.3s ease-out",
-          position: "fixed",
-          left: 0,
-          right: 0,
-          zIndex: 1100,
-          backgroundColor: "rgba(255,255,255,0.95)",
-          padding: "0.5rem 1rem",
-          display: "flex",
-          alignItems: "center",
-          borderTop: "1px solid #ccc",
-        }}
-      >
-        <textarea
-          ref={inputRef}
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          onKeyDown={onKeyDown}
-          onFocus={onInputFocus}
-          onBlur={onInputBlur}
-          placeholder="Type your message"
-          rows={1}
-          style={{
-            flexGrow: 1,
-            resize: "none",
-            borderRadius: "20px",
-            border: "1px solid #ccc",
-            padding: "0.5rem 1rem",
-            fontSize: 16,
-            lineHeight: "20px",
-            outline: "none",
-            backgroundColor: "#fff",
-            maxHeight: 100,
-          }}
-          aria-label="Message input"
-        />
-        <button
-          onClick={sendMessage}
-          disabled={!inputValue.trim()}
-          style={{
-            marginLeft: "0.5rem",
-            padding: "0.5rem 1rem",
-            fontSize: 16,
-            borderRadius: "20px",
-            border: "none",
-            backgroundColor: inputValue.trim() ? "#007aff" : "#ccc",
-            color: "#fff",
-            cursor: inputValue.trim() ? "pointer" : "not-allowed",
-          }}
-          aria-label="Send message"
-          type="button"
-        >
-          Send
-        </button>
-      </div>
-    </>
+    </div>
   );
 }
