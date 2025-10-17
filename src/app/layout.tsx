@@ -1,25 +1,28 @@
+import type { Metadata, Viewport } from "next";
+import "./globals.css";
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  interactiveWidget: "overlays-content",
+  viewportFit: "cover",
+};
+
+export const metadata: Metadata = {
+  title: "3D Chat",
+  description: "Three.js with chat",
+};
+
 export default function RootLayout({
   children,
-}: {
+}: Readonly<{
   children: React.ReactNode;
-}) {
+}>) {
   return (
-    <html lang="en" style={{ height: '100%' }}>
-      <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-        <meta name="apple-mobile-web-app-capable" content="yes" />
-        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-      </head>
-      <body style={{ 
-        margin: 0, 
-        padding: 0, 
-        width: '100vw', 
-        height: '100dvh',
-        overflow: 'hidden',
-        position: 'fixed',
-        top: 0,
-        left: 0
-      }}>
+    <html lang="en" className="h-full">
+      <body className="h-full">
         {children}
       </body>
     </html>
