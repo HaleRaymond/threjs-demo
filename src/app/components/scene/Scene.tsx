@@ -10,6 +10,7 @@ import * as THREE from "three";
 function Avatar() {
   const [vrm, setVrm] = useState<VRM | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loader = new GLTFLoader();
@@ -18,16 +19,23 @@ function Avatar() {
     loader.load(
       "/assets/base_avatar.vrm",
       (gltf) => {
-        const vrm = gltf.userData.vrm as VRM;
-        if (vrm) {
-          vrm.scene.rotation.y = Math.PI;
-          setVrm(vrm);
+        try {
+          const vrm = gltf.userData.vrm as VRM;
+          if (vrm) {
+            vrm.scene.rotation.y = Math.PI;
+            setVrm(vrm);
+          } else {
+            setError("No VRM data found");
+          }
+        } catch (err) {
+          setError("Failed to process VRM");
         }
         setLoading(false);
       },
       undefined,
       (error) => {
         console.error('Failed to load VRM:', error);
+        setError("Failed to load avatar");
         setLoading(false);
       }
     );
@@ -48,7 +56,7 @@ function Avatar() {
     );
   }
 
-  if (!vrm) {
+  if (error || !vrm) {
     return (
       <mesh position={[0, 1.6, 0]}>
         <boxGeometry args={[0.5, 0.5, 0.5]} />
@@ -92,7 +100,10 @@ export default function Scene() {
         far: 1000
       }}
       onCreated={({ gl }) => {
-        gl.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        // SSR protection
+        if (typeof window !== 'undefined') {
+          gl.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        }
         gl.shadowMap.enabled = true;
         gl.shadowMap.type = THREE.PCFSoftShadowMap;
       }}
@@ -101,9 +112,18 @@ export default function Scene() {
         height: '100%',
         display: 'block'
       }}
+      gl={{
+        antialias: true,
+        alpha: false,
+      }}
     >
       <color attach="background" args={["#e0e0e0"]} />
-      <Suspense fallback={null}>
+      <Suspense fallback={
+        <mesh position={[0, 1.6, 0]}>
+          <boxGeometry args={[0.3, 0.3, 0.3]} />
+          <meshBasicMaterial color="#888888" />
+        </mesh>
+      }>
         <Lights />
         <Avatar />
         <Floor />
