@@ -11,7 +11,7 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "3D Chat",
+  title: "3Ds",
   description: "Three.js with chat",
 };
 
