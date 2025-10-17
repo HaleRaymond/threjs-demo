@@ -92,34 +92,41 @@ export default function Page() {
 
   return (
     <div className="fixed inset-0 bg-gray-900">
-      {/* SCENE - ABSOLUTELY NO TRANSFORMS */}
+      {/* SCENE - ABSOLUTELY FIXED, NEVER MOVES */}
       <Scene />
 
       {/* UI LAYER - SEPARATE FROM SCENE */}
       <div className="fixed inset-0 pointer-events-none z-10">
         
-        {/* Messages Panel - ONLY THIS MOVES */}
+        {/* CLOSE BUTTON - FIXED AT TOP, NEVER MOVES (like Replika) */}
+        {showMessages && (
+          <div className="absolute top-0 left-0 right-0 pointer-events-auto safe-area-inset">
+            <div className="flex items-center justify-end py-4 px-4">
+              <button
+                onClick={closeMessages}
+                className="px-4 py-2 bg-black/60 text-white/90 rounded-full text-sm backdrop-blur-lg border border-white/10"
+                style={{ minHeight: '44px' }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Messages Panel - ONLY THIS SCROLLS UP */}
         {showMessages && (
           <div 
-            className="absolute inset-0 flex flex-col pointer-events-auto bg-gradient-to-b from-black/80 via-black/40 to-transparent"
+            className="absolute inset-0 flex flex-col pointer-events-auto"
             style={{
-              // Only transform the messages panel, not the container
+              // Only the messages content area moves up
               transform: `translateY(-${keyboardHeight}px)`,
               transition: 'transform 0.3s ease-out',
               paddingTop: 'env(safe-area-inset-top, 0px)'
             }}
           >
             <div className="flex-1 overflow-hidden flex flex-col">
-              {/* Header */}
-              <div className="flex items-center justify-end py-4 px-4">
-                <button
-                  onClick={closeMessages}
-                  className="px-4 py-2 bg-black/60 text-white/90 rounded-full text-sm backdrop-blur-lg border border-white/10 pointer-events-auto"
-                  style={{ minHeight: '44px' }}
-                >
-                  Close
-                </button>
-              </div>
+              {/* Spacer for fixed close button */}
+              <div className="h-16" /> {/* Matches the close button height */}
               
               {/* Messages */}
               <div 
@@ -144,11 +151,10 @@ export default function Page() {
           </div>
         )}
 
-        {/* Input Area - ONLY THIS MOVES */}
+        {/* Input Area - MOVES UP WITH KEYBOARD */}
         <div 
           className="absolute bottom-0 left-0 right-0 pointer-events-auto"
           style={{
-            // Only transform the input area, not the container
             transform: `translateY(-${keyboardHeight}px)`,
             transition: 'transform 0.3s ease-out',
             paddingBottom: 'env(safe-area-inset-bottom, 0px)'
