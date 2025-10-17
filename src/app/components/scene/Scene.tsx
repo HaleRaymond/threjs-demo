@@ -2,7 +2,7 @@
 
 import { Canvas, useFrame } from "@react-three/fiber";
 import { OrbitControls } from "@react-three/drei";
-import { Suspense, useEffect, useState, useRef } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js";
 import { VRM, VRMLoaderPlugin } from "@pixiv/three-vrm";
 import * as THREE from "three";
@@ -83,38 +83,8 @@ function Lights() {
 }
 
 export default function Scene() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-
-  // iOS touch prevention
-  useEffect(() => {
-    const preventFocus = (e: TouchEvent) => {
-      e.preventDefault();
-      e.stopPropagation();
-    };
-
-    const preventContextMenu = (e: Event) => {
-      e.preventDefault();
-    };
-
-    const canvas = canvasRef.current;
-    if (canvas) {
-      canvas.addEventListener('touchstart', preventFocus, { passive: false });
-      canvas.addEventListener('contextmenu', preventContextMenu);
-      canvas.setAttribute('tabindex', '-1');
-      canvas.style.outline = 'none';
-    }
-
-    return () => {
-      if (canvas) {
-        canvas.removeEventListener('touchstart', preventFocus);
-        canvas.removeEventListener('contextmenu', preventContextMenu);
-      }
-    };
-  }, []);
-
   return (
     <Canvas
-      ref={canvasRef}
       camera={{ 
         position: [0, 1.6, 3], 
         fov: 45,
@@ -130,20 +100,9 @@ export default function Scene() {
         position: 'fixed',
         top: 0,
         left: 0,
-        width: '100vw',
-        height: '100vh',
-        display: 'block',
-        touchAction: 'none',
-        WebkitTouchCallout: 'none',
-        WebkitUserSelect: 'none',
-        userSelect: 'none',
-        zIndex: 1,
-        outline: 'none'
-      }}
-      gl={{
-        antialias: false,
-        alpha: false,
-        powerPreference: "low-power"
+        width: '100%',
+        height: '100%',
+        touchAction: 'none'
       }}
     >
       <color attach="background" args={["#e0e0e0"]} />
@@ -160,10 +119,6 @@ export default function Scene() {
         enableRotate={true}
         minDistance={1}
         maxDistance={10}
-        touches={{
-          ONE: THREE.TOUCH.ROTATE,
-          TWO: THREE.TOUCH.DOLLY_PAN
-        }}
       />
     </Canvas>
   );
