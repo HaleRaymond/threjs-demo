@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, KeyboardEvent, useState, useRef, useEffect } from "react";
+import { FormEvent, KeyboardEvent, useState, useRef, useEffect, useCallback } from "react";
 import Scene from "./components/scene/Scene";
 import { useKeyboardHandler } from "../hooks/useKeyboardHandler";
 
@@ -15,18 +15,22 @@ export default function Page() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const modalRef = useRef<HTMLDivElement>(null);
   
   const { keyboardHeight, isKeyboardOpen, onInputFocus, onInputBlur } = useKeyboardHandler();
 
-  // Auto-scroll to bottom when messages change
+  // ACCEPT iOS: Scene moves slightly (15%), Chat moves fully
+  const sceneMovement = Math.floor(keyboardHeight * 0.15);
+  const chatMovement = keyboardHeight;
+
+  // Auto-scroll to bottom
   useEffect(() => {
-    setTimeout(() => {
+    const timeout = setTimeout(() => {
       messagesEndRef.current?.scrollIntoView({ 
         behavior: "smooth",
         block: "end"
       });
     }, 100);
+    return () => clearTimeout(timeout);
   }, [messages, isKeyboardOpen]);
 
   // Auto-resize textarea
@@ -35,119 +39,96 @@ export default function Page() {
     if (textarea) {
       textarea.style.height = 'auto';
       const newHeight = Math.min(textarea.scrollHeight, 100);
-      textarea.style.height = newHeight + 'px';
+      textarea.style.height = `${newHeight}px`;
     }
   }, [input]);
 
-  // Close modal when clicking backdrop
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (modalRef.current && !modalRef.current.contains(event.target as Node)) {
-        closeChat();
-      }
-    };
-
-    if (isChatOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
-  }, [isChatOpen]);
-
-  const sendMessage = () => {
+  const sendMessage = useCallback(() => {
     if (!input.trim()) return;
-
-    setMessages((prev) => [
-      ...prev,
-      { id: Date.now().toString(), content: input.trim() },
-    ]);
+    setMessages((prev) => [...prev, { id: Date.now().toString(), content: input.trim() }]);
     setInput("");
     
-    // Reset textarea height
+    // Reset textarea
     setTimeout(() => {
       if (textareaRef.current) {
         textareaRef.current.style.height = '44px';
       }
     }, 50);
-  };
+  }, [input]);
 
-  const handleSubmit = (e: FormEvent) => {
+  const handleSubmit = useCallback((e: FormEvent) => {
     e.preventDefault();
     sendMessage();
-  };
+  }, [sendMessage]);
 
-  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+  const handleKeyDown = useCallback((e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
     }
-  };
+  }, [sendMessage]);
 
-  const closeChat = () => {
+  const closeChat = useCallback(() => {
     setIsChatOpen(false);
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
     }
-  };
+  }, []);
 
-  const openChat = () => {
+  const openChat = useCallback(() => {
     setIsChatOpen(true);
-    // Focus input after modal animation
     setTimeout(() => {
       textareaRef.current?.focus();
     }, 300);
-  };
+  }, []);
 
   return (
-    <div className="fixed inset-0 bg-black">
-      {/* MAIN 3D SCENE - Always visible, never moves */}
-      <div className="absolute inset-0">
+    <div className="fixed inset-0 bg-black" style={{ height: '100vh', overflow: 'hidden' }}>
+      {/* SCENE - Accepts graceful movement (15%) */}
+      <div 
+        className="absolute inset-0 transition-all duration-500 ease-out"
+        style={{ 
+          transform: `translateY(-${sceneMovement}px)`,
+          // Visual compensation when chat is open
+          filter: isChatOpen ? 'brightness(0.6) blur(3px)' : 'brightness(1) blur(0px)',
+          scale: isChatOpen ? '1.02' : '1'
+        }}
+      >
         <Scene />
       </div>
 
-      {/* TALK TO ME BUTTON - Fixed at bottom */}
+      {/* TALK TO ME BUTTON - Fixed position */}
       {!isChatOpen && (
-        <div 
-          className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-10"
-          style={{
-            paddingBottom: 'env(safe-area-inset-bottom, 0px)'
-          }}
-        >
+        <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-10 safe-area-bottom">
           <button
             onClick={openChat}
-            className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-lg font-semibold shadow-2xl transition-all duration-200 transform hover:scale-105"
+            className="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-full text-lg font-semibold shadow-2xl transition-all duration-300 transform hover:scale-105 backdrop-blur-sm border border-white/20"
           >
             Talk to me
           </button>
         </div>
       )}
 
-      {/* CHAT MODAL - Slides up from bottom like Replika */}
+      {/* CHAT MODAL - Moves fully with keyboard */}
       {isChatOpen && (
-        <div className="fixed inset-0 z-50">
-          {/* Backdrop with blur */}
+        <div 
+          className="fixed inset-0 z-50 transition-transform duration-500 ease-out"
+          style={{ transform: `translateY(-${chatMovement}px)` }}
+        >
+          {/* Backdrop */}
           <div 
-            className="absolute inset-0 bg-black/50 backdrop-blur-sm transition-opacity duration-300"
+            className="absolute inset-0 bg-black/40"
             onClick={closeChat}
           />
           
-          {/* Modal Content */}
-          <div 
-            ref={modalRef}
-            className="absolute bottom-0 left-0 right-0 bg-white rounded-t-3xl shadow-2xl transition-transform duration-300 ease-out"
-            style={{
-              transform: `translateY(-${keyboardHeight}px)`,
-              maxHeight: '90vh'
-            }}
-          >
+          {/* Chat Container */}
+          <div className="absolute bottom-0 left-0 right-0 bg-black/80 backdrop-blur-2xl rounded-t-3xl border-t border-white/20 shadow-2xl max-h-[85vh]">
             {/* Header */}
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-800">Chat</h2>
+            <div className="flex items-center justify-between p-6 border-b border-white/20">
+              <h2 className="text-xl font-semibold text-white">Chat</h2>
               <button
                 onClick={closeChat}
-                className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors text-gray-500 hover:text-gray-700"
+                className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors text-white/70 hover:text-white"
               >
                 <span className="text-2xl">×</span>
               </button>
@@ -155,21 +136,21 @@ export default function Page() {
 
             {/* Messages Area */}
             <div 
-              className="flex-1 overflow-y-auto p-4 messages-container"
+              className="flex-1 overflow-y-auto p-6 messages-container"
               style={{
-                maxHeight: '40vh',
-                minHeight: '200px'
+                maxHeight: '35vh',
+                minHeight: '150px'
               }}
             >
-              <div className="space-y-3">
+              <div className="space-y-4">
                 {messages.length === 0 ? (
-                  <div className="text-center text-gray-500 py-8">
-                    <p>Start a conversation...</p>
+                  <div className="text-center text-white/50 py-8">
+                    <p className="text-lg">Start a conversation...</p>
                   </div>
                 ) : (
                   messages.map((msg) => (
                     <div key={msg.id} className="flex justify-end">
-                      <div className="max-w-[80%] bg-blue-600 text-white rounded-2xl px-4 py-3 text-[15px] leading-relaxed break-words shadow-sm">
+                      <div className="max-w-[80%] bg-blue-600/90 backdrop-blur-sm text-white rounded-2xl px-5 py-3 text-[16px] leading-relaxed break-words border border-blue-400/30 shadow-lg">
                         {msg.content}
                       </div>
                     </div>
@@ -180,13 +161,8 @@ export default function Page() {
             </div>
 
             {/* Input Area */}
-            <div 
-              className="p-4 border-t border-gray-200 bg-gray-50 rounded-b-3xl"
-              style={{
-                paddingBottom: `calc(1rem + env(safe-area-inset-bottom, 0px))`
-              }}
-            >
-              <form onSubmit={handleSubmit} className="flex gap-3 items-end">
+            <div className="p-6 border-t border-white/20 safe-area-bottom">
+              <form onSubmit={handleSubmit} className="flex gap-4 items-end">
                 <div className="flex-1">
                   <textarea
                     ref={textareaRef}
@@ -197,17 +173,17 @@ export default function Page() {
                     onBlur={onInputBlur}
                     placeholder="Type a message..."
                     rows={1}
-                    className="w-full bg-white border border-gray-300 text-gray-900 rounded-2xl px-4 py-3 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-gray-400"
+                    className="w-full bg-white/10 backdrop-blur-lg text-white rounded-2xl px-5 py-4 resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder-white/50 border border-white/20 transition-all duration-200"
                     style={{
-                      minHeight: '44px',
-                      maxHeight: '100px'
+                      minHeight: '52px',
+                      maxHeight: '120px'
                     }}
                   />
                 </div>
                 <button
                   type="submit"
                   disabled={!input.trim()}
-                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white rounded-2xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex-shrink-0"
+                  className="px-6 py-4 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-600/50 text-white rounded-2xl font-semibold disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex-shrink-0 backdrop-blur-sm border border-blue-400/30 hover:scale-105 active:scale-95"
                 >
                   Send
                 </button>
