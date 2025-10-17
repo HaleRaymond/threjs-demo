@@ -18,6 +18,25 @@ export default function Page() {
   
   const { keyboardHeight, isKeyboardOpen, onInputFocus, onInputBlur } = useKeyboardHandler();
 
+  // Prevent iOS scroll on scene
+  useEffect(() => {
+    const preventDefault = (e: Event) => {
+      e.preventDefault();
+    };
+
+    const sceneElement = document.querySelector('.fixed.inset-0.z-0');
+    if (sceneElement) {
+      sceneElement.addEventListener('touchmove', preventDefault, { passive: false });
+    }
+
+    return () => {
+      if (sceneElement) {
+        sceneElement.removeEventListener('touchmove', preventDefault);
+      }
+    };
+  }, []);
+
+  // Auto-scroll to bottom
   useEffect(() => {
     setTimeout(() => {
       messagesEndRef.current?.scrollIntoView({ 
@@ -27,6 +46,7 @@ export default function Page() {
     }, 100);
   }, [messages, isKeyboardOpen]);
 
+  // Auto-resize textarea
   useEffect(() => {
     const textarea = textareaRef.current;
     if (textarea) {
@@ -45,6 +65,7 @@ export default function Page() {
     ]);
     setInput("");
     
+    // Reset textarea
     setTimeout(() => {
       if (textareaRef.current) {
         textareaRef.current.style.height = '48px';
@@ -89,13 +110,13 @@ export default function Page() {
 
   return (
     <div className="fixed inset-0 bg-gray-900">
-      {/* SCENE - FIXED */}
+      {/* SCENE - ABSOLUTELY FIXED, NEVER MOVES */}
       <Scene />
 
-      {/* UI LAYER */}
+      {/* UI LAYER - SEPARATE FROM SCENE */}
       <div className="fixed inset-0 pointer-events-none z-10">
         
-        {/* CLOSE BUTTON - FIXED */}
+        {/* CLOSE BUTTON - FIXED AT TOP, NEVER MOVES */}
         {showMessages && (
           <div className="absolute top-0 left-0 right-0 pointer-events-auto safe-area-inset">
             <div className="flex items-center justify-end py-4 px-4">
@@ -110,25 +131,27 @@ export default function Page() {
           </div>
         )}
 
-        {/* MESSAGES CONTENT */}
+        {/* Messages Panel - ONLY THIS SCROLLS UP */}
         {showMessages && (
           <div 
-            className="absolute inset-0 pointer-events-auto"
+            className="absolute inset-0 flex flex-col pointer-events-auto"
             style={{
+              // Only the messages content area moves up
               transform: `translateY(-${keyboardHeight}px)`,
               transition: 'transform 0.3s ease-out',
               paddingTop: 'env(safe-area-inset-top, 0px)'
             }}
           >
-            <div className="absolute inset-0 bg-gradient-to-b from-black/70 via-transparent to-transparent" />
-            
-            <div className="relative h-full flex flex-col">
-              <div className="h-16" />
+            <div className="flex-1 overflow-hidden flex flex-col">
+              {/* Spacer for fixed close button */}
+              <div className="h-16" /> {/* Matches the close button height */}
               
+              {/* Messages */}
               <div 
-                className="flex-1 overflow-y-auto px-4 messages-container"
+                className="flex-1 overflow-y-auto px-4 messages-container pointer-events-auto"
                 style={{
-                  paddingBottom: isKeyboardOpen ? '20px' : '0px'
+                  // Add padding to ensure messages are visible above keyboard
+                  paddingBottom: isKeyboardOpen ? `${keyboardHeight + 20}px` : '0px'
                 }}
               >
                 <div className="space-y-3 py-2">
@@ -146,13 +169,16 @@ export default function Page() {
           </div>
         )}
 
-        {/* INPUT AREA */}
+        {/* Input Area - MOVES UP WITH KEYBOARD */}
         <div 
-          className="absolute bottom-0 left-0 right-0 pointer-events-auto"
+          className="absolute bottom-0 left-0 right-0 pointer-events-auto input-container"
           style={{
             transform: `translateY(-${keyboardHeight}px)`,
             transition: 'transform 0.3s ease-out',
-            paddingBottom: 'env(safe-area-inset-bottom, 0px)'
+            paddingBottom: 'env(safe-area-inset-bottom, 0px)',
+            position: 'fixed',
+            bottom: '0',
+            zIndex: 1000
           }}
         >
           <div className="px-4 pb-4 bg-gradient-to-t from-black/50 to-transparent pt-6">
