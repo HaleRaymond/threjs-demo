@@ -15,13 +15,50 @@ export const useKeyboardHandler = (): KeyboardState => {
   const originalHeightRef = useRef<number>(0);
   const resizeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Platform detection
+  const isIOS = typeof window !== 'undefined' && 
+    (/iPad|iPhone|iPod/.test(navigator.userAgent) || 
+     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
+
+  const isAndroid = typeof window !== 'undefined' && /Android/.test(navigator.userAgent);
+
   const updateKeyboardState = useCallback((height: number) => {
     const isOpening = height > 100;
     setKeyboardHeight(height);
     setIsKeyboardOpen(isOpening);
   }, []);
 
-  // Simple resize handler
+  // iOS-specific keyboard handlers
+  useEffect(() => {
+    if (!isIOS) return;
+
+    const handleFocus = () => {
+      document.documentElement.classList.add('ios-keyboard-open');
+    };
+
+    const handleBlur = () => {
+      setTimeout(() => {
+        document.documentElement.classList.remove('ios-keyboard-open');
+      }, 100);
+    };
+
+    // Add event listeners for all inputs
+    const inputs = document.querySelectorAll('textarea, input');
+    inputs.forEach(input => {
+      input.addEventListener('focus', handleFocus);
+      input.addEventListener('blur', handleBlur);
+    });
+
+    return () => {
+      inputs.forEach(input => {
+        input.removeEventListener('focus', handleFocus);
+        input.removeEventListener('blur', handleBlur);
+      });
+      document.documentElement.classList.remove('ios-keyboard-open');
+    };
+  }, [isIOS]);
+
+  // Main resize handler - works for both iOS and Android
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
@@ -36,34 +73,75 @@ export const useKeyboardHandler = (): KeyboardState => {
         const currentHeight = window.innerHeight;
         const heightDiff = originalHeightRef.current - currentHeight;
 
-        if (heightDiff > 100 && heightDiff < 500) {
+        // Keyboard detection logic
+        const isLikelyKeyboard = heightDiff > 100 && 
+                                heightDiff < originalHeightRef.current * 0.7;
+
+        if (isLikelyKeyboard) {
+          // Keyboard opened
           updateKeyboardState(heightDiff);
+          originalHeightRef.current = currentHeight;
         } else if (currentHeight > originalHeightRef.current && keyboardHeight > 0) {
+          // Keyboard closed
           updateKeyboardState(0);
+          originalHeightRef.current = currentHeight;
+        } else {
+          // Actual window resize
+          originalHeightRef.current = currentHeight;
         }
-      }, 100);
+      }, isIOS ? 150 : 100);
     };
 
-    window.addEventListener('resize', handleResize);
+    // Visual Viewport API for modern browsers
+    const handleVisualViewport = () => {
+      if (!window.visualViewport) return;
+      
+      const visualViewport = window.visualViewport;
+      const heightDiff = window.innerHeight - visualViewport.height;
+      
+      if (heightDiff > 100) {
+        updateKeyboardState(heightDiff);
+      } else if (heightDiff < 50 && keyboardHeight > 0) {
+        updateKeyboardState(0);
+      }
+    };
 
+    // Add event listeners
+    window.addEventListener('resize', handleResize);
+    
+    if (window.visualViewport) {
+      window.visualViewport.addEventListener('resize', handleVisualViewport);
+    }
+
+    // Cleanup
     return () => {
       window.removeEventListener('resize', handleResize);
+      if (window.visualViewport) {
+        window.visualViewport.removeEventListener('resize', handleVisualViewport);
+      }
       if (resizeTimeoutRef.current) {
         clearTimeout(resizeTimeoutRef.current);
       }
     };
-  }, [keyboardHeight, updateKeyboardState]);
+  }, [keyboardHeight, updateKeyboardState, isIOS]);
 
+  // Focus/blur handlers
   const handleFocus = useCallback(() => {
     focusTimeRef.current = Date.now();
+    
+    const delay = isIOS ? 400 : isAndroid ? 200 : 150;
+    
     setTimeout(() => {
       if (keyboardHeight === 0) {
-        updateKeyboardState(300);
+        const estimatedHeight = isIOS ? 336 : isAndroid ? 280 : 300;
+        updateKeyboardState(estimatedHeight);
       }
-    }, 300);
-  }, [keyboardHeight, updateKeyboardState]);
+    }, delay);
+  }, [isIOS, isAndroid, keyboardHeight, updateKeyboardState]);
 
   const handleBlur = useCallback(() => {
+    const delay = isIOS ? 200 : 100;
+    
     setTimeout(() => {
       const activeElement = document.activeElement;
       const isTextInput = activeElement?.tagName === 'TEXTAREA' || 
@@ -72,8 +150,8 @@ export const useKeyboardHandler = (): KeyboardState => {
       if (!isTextInput) {
         updateKeyboardState(0);
       }
-    }, 100);
-  }, [updateKeyboardState]);
+    }, delay);
+  }, [isIOS, updateKeyboardState]);
 
   return {
     keyboardHeight,
