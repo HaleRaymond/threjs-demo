@@ -18,6 +18,30 @@ export default function Page() {
   
   const { keyboardHeight, isKeyboardOpen, onInputFocus, onInputBlur } = useKeyboardHandler();
 
+  // iOS-specific touch prevention - CRITICAL FOR IOS
+  useEffect(() => {
+    const preventFocus = (e: TouchEvent) => {
+      const target = e.target as HTMLElement;
+      if (target && !['TEXTAREA', 'INPUT'].includes(target.tagName)) {
+        // Prevent focus on non-input elements to avoid keyboard issues
+        e.preventDefault();
+      }
+    };
+
+    // Prevent context menu on long press
+    const preventContextMenu = (e: Event) => {
+      e.preventDefault();
+    };
+
+    document.addEventListener('touchstart', preventFocus, { passive: false });
+    document.addEventListener('contextmenu', preventContextMenu);
+
+    return () => {
+      document.removeEventListener('touchstart', preventFocus);
+      document.removeEventListener('contextmenu', preventContextMenu);
+    };
+  }, []);
+
   // Prevent iOS scroll on scene
   useEffect(() => {
     const preventDefault = (e: Event) => {
