@@ -12,6 +12,7 @@ type ChatMessage = {
 export default function Page() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   
@@ -20,22 +21,9 @@ export default function Page() {
   // Auto-scroll to bottom
   useEffect(() => {
     setTimeout(() => {
-      messagesEndRef.current?.scrollIntoView({ 
-        behavior: "smooth",
-        block: "end"
-      });
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, 100);
   }, [messages, isKeyboardOpen]);
-
-  // Auto-resize textarea
-  useEffect(() => {
-    const textarea = textareaRef.current;
-    if (textarea) {
-      textarea.style.height = 'auto';
-      const newHeight = Math.min(textarea.scrollHeight, 120);
-      textarea.style.height = newHeight + 'px';
-    }
-  }, [input]);
 
   const sendMessage = () => {
     if (!input.trim()) return;
@@ -45,12 +33,6 @@ export default function Page() {
       { id: Date.now().toString(), content: input.trim() },
     ]);
     setInput("");
-    
-    setTimeout(() => {
-      if (textareaRef.current) {
-        textareaRef.current.style.height = '48px';
-      }
-    }, 50);
   };
 
   const handleSubmit = (e: FormEvent) => {
@@ -66,71 +48,157 @@ export default function Page() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-gray-900">
-      {/* 3D SCENE - FIXED HEIGHT (Like Replika) */}
-      <div className="flex-1 relative min-h-0"> {/* Critical: flex-1 with min-h-0 */}
-        <div className="absolute inset-0">
-          <Scene />
-        </div>
+    <div style={{ 
+      position: 'fixed', 
+      top: 0, 
+      left: 0, 
+      width: '100vw', 
+      height: '100vh',
+      overflow: 'hidden'
+    }}>
+      {/* SCENE - ABSOLUTELY FIXED */}
+      <div className="scene-container">
+        <Scene />
       </div>
 
-      {/* CHAT INTERFACE - SEPARATE FROM SCENE (Like Replika) */}
-      <div 
-        className="flex-shrink-0 bg-white/10 backdrop-blur-lg border-t border-white/20 transition-transform duration-300 ease-out"
-        style={{
-          transform: `translateY(-${keyboardHeight}px)`
-        }}
-      >
-        {/* Messages Area */}
-        <div 
-          className="max-h-48 overflow-y-auto px-4 py-3"
+      {/* CHAT OVERLAY - LIKE REPLIKA */}
+      <div style={{
+        position: 'fixed',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        zIndex: 1000,
+        transition: 'transform 0.3s ease-out',
+        transform: `translateY(-${keyboardHeight}px)`
+      }}>
+        {!isChatOpen ? (
+          // "Talk to me" button
+          <div style={{ 
+            padding: '16px',
+            paddingBottom: `calc(16px + env(safe-area-inset-bottom, 0px))`
+          }}>
+            <button
+              onClick={() => setIsChatOpen(true)}
+              style={{
+                width: '100%',
+                padding: '16px',
+                backgroundColor: '#2563eb',
+                color: 'white',
+                borderRadius: '16px',
+                border: 'none',
+                fontSize: '18px',
+                fontWeight: '600'
+              }}
+            >
+              Talk to me
+            </button>
+          </div>
+        ) : (
+          // Chat interface
+          <div style={{
+            background: 'linear-gradient(to top, rgba(0,0,0,0.7), transparent)',
+            padding: '16px',
+            paddingBottom: `calc(16px + env(safe-area-inset-bottom, 0px))`
+          }}>
+            {/* Messages */}
+            <div style={{
+              maxHeight: isKeyboardOpen ? '120px' : '200px',
+              overflowY: 'auto',
+              marginBottom: '16px',
+              transition: 'max-height 0.3s ease-out'
+            }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {messages.map((msg) => (
+                  <div key={msg.id} style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    <div style={{
+                      maxWidth: '80%',
+                      padding: '12px 16px',
+                      backgroundColor: '#2563eb',
+                      color: 'white',
+                      borderRadius: '16px',
+                      fontSize: '15px',
+                      lineHeight: '1.4'
+                    }}>
+                      {msg.content}
+                    </div>
+                  </div>
+                ))}
+                <div ref={messagesEndRef} />
+              </div>
+            </div>
+
+            {/* Input form */}
+            <form onSubmit={handleSubmit} style={{ 
+              display: 'flex', 
+              gap: '12px', 
+              alignItems: 'flex-end' 
+            }}>
+              <div style={{ flex: 1 }}>
+                <textarea
+                  ref={textareaRef}
+                  value={input}
+                  onChange={(e) => setInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  onFocus={onInputFocus}
+                  onBlur={onInputBlur}
+                  placeholder="Type a message..."
+                  rows={1}
+                  style={{
+                    width: '100%',
+                    padding: '12px 16px',
+                    backgroundColor: 'rgba(0,0,0,0.7)',
+                    color: 'white',
+                    borderRadius: '16px',
+                    border: '1px solid rgba(255,255,255,0.2)',
+                    resize: 'none',
+                    minHeight: '48px',
+                    maxHeight: '120px',
+                    fontFamily: 'inherit',
+                    fontSize: '16px'
+                  }}
+                />
+              </div>
+              <button
+                type="submit"
+                disabled={!input.trim()}
+                style={{
+                  padding: '12px 20px',
+                  backgroundColor: '#2563eb',
+                  color: 'white',
+                  borderRadius: '16px',
+                  border: 'none',
+                  fontWeight: '600',
+                  opacity: input.trim() ? 1 : 0.5,
+                  cursor: input.trim() ? 'pointer' : 'not-allowed'
+                }}
+              >
+                Send
+              </button>
+            </form>
+          </div>
+        )}
+      </div>
+
+      {/* Close button when chat is open */}
+      {isChatOpen && (
+        <button
+          onClick={() => setIsChatOpen(false)}
           style={{
-            maxHeight: isKeyboardOpen ? '120px' : '192px',
-            transition: 'max-height 0.3s ease-out'
+            position: 'fixed',
+            top: `calc(16px + env(safe-area-inset-top, 0px))`,
+            right: '16px',
+            zIndex: 1001,
+            padding: '8px 16px',
+            backgroundColor: 'rgba(0,0,0,0.7)',
+            color: 'white',
+            borderRadius: '16px',
+            border: '1px solid rgba(255,255,255,0.2)',
+            fontSize: '14px'
           }}
         >
-          <div className="space-y-2">
-            {messages.map((msg) => (
-              <div key={msg.id} className="flex justify-end">
-                <div className="max-w-[80%] rounded-2xl px-4 py-2 bg-blue-600 text-white text-sm leading-relaxed break-words">
-                  {msg.content}
-                </div>
-              </div>
-            ))}
-            <div ref={messagesEndRef} />
-          </div>
-        </div>
-
-        {/* Input Area */}
-        <div className="px-4 pb-4 safe-area-bottom">
-          <form onSubmit={handleSubmit} className="flex gap-2 items-end">
-            <div className="flex-1">
-              <textarea
-                ref={textareaRef}
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={handleKeyDown}
-                onFocus={onInputFocus}
-                onBlur={onInputBlur}
-                placeholder="Type a message..."
-                rows={1}
-                className="w-full bg-black/60 text-white px-4 py-3 rounded-2xl resize-none focus:outline-none focus:ring-2 focus:ring-blue-500 placeholder-gray-400 border border-white/20"
-                style={{
-                  minHeight: '48px',
-                  maxHeight: '120px'
-                }}
-              />
-            </div>
-            <button
-              type="submit"
-              disabled={!input.trim()}
-              className="px-4 py-3 bg-blue-600 text-white rounded-2xl font-medium disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              Send
-            </button>
-          </form>
-        </div>
-      </div>
+          Close
+        </button>
+      )}
     </div>
   );
 }
