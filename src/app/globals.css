@@ -8,12 +8,10 @@ html, body {
   background: black;
 }
 
-/* Prevent blue tap highlight on mobile */
 * {
   -webkit-tap-highlight-color: transparent;
 }
 
-/* Custom scrollbar for messages */
 .messages-container::-webkit-scrollbar {
   width: 4px;
 }
@@ -23,6 +21,18 @@ html, body {
 }
 
 .messages-container::-webkit-scrollbar-thumb {
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(255, 255, 255, 0.2);
   border-radius: 2px;
+}
+
+.messages-container {
+  -webkit-overflow-scrolling: touch;
+}
+
+.safe-area-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+.safe-area-top {
+  padding-top: env(safe-area-inset-top);
 }
