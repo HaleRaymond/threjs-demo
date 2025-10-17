@@ -27,11 +27,21 @@ export default function Page() {
       }
     };
 
+    const preventTouchMove = (e: TouchEvent) => {
+      // Prevent scroll on body when keyboard is open
+      if (isKeyboardOpen) {
+        e.preventDefault();
+      }
+    };
+
     document.addEventListener('touchstart', preventFocus, { passive: false });
+    document.addEventListener('touchmove', preventTouchMove, { passive: false });
+
     return () => {
       document.removeEventListener('touchstart', preventFocus);
+      document.removeEventListener('touchmove', preventTouchMove);
     };
-  }, []);
+  }, [isKeyboardOpen]);
 
   // Auto-scroll to bottom when messages or keyboard changes
   useEffect(() => {
@@ -129,11 +139,12 @@ export default function Page() {
           </div>
         )}
 
-        {/* Messages Panel - ONLY THIS SCROLLS UP */}
+        {/* Messages Panel - ONLY THIS MOVES UP WITH KEYBOARD */}
         {showMessages && (
           <div 
             className="messages-panel pointer-events-auto"
             style={{
+              // ONLY this element moves
               transform: `translateY(-${keyboardHeight}px)`,
               paddingTop: 'env(safe-area-inset-top, 0px)'
             }}
@@ -168,6 +179,7 @@ export default function Page() {
         <div 
           className="input-container pointer-events-auto"
           style={{
+            // ONLY this element moves
             transform: `translateY(-${keyboardHeight}px)`,
             paddingBottom: 'env(safe-area-inset-bottom, 0px)'
           }}
