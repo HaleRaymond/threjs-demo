@@ -226,9 +226,6 @@ export default function Scene() {
         rotateSpeed={0.5}
         zoomSpeed={0.8}
         panSpeed={0.8}
-        
-        // Smooth experience
-        smoothTime={0.1}
       />
     </Canvas>
   );
