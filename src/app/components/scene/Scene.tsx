@@ -92,7 +92,9 @@ export default function Scene() {
         far: 1000
       }}
       onCreated={({ gl }) => {
-        gl.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        if (typeof window !== 'undefined') {
+          gl.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        }
         gl.shadowMap.enabled = true;
         gl.shadowMap.type = THREE.PCFSoftShadowMap;
       }}
