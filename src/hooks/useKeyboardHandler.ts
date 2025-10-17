@@ -15,20 +15,13 @@ export const useKeyboardHandler = (): KeyboardState => {
   const originalHeightRef = useRef<number>(0);
   const resizeTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Platform detection
-  const isIOS = typeof window !== 'undefined' && 
-    (/iPad|iPhone|iPod/.test(navigator.userAgent) || 
-     (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1));
-
-  const isAndroid = typeof window !== 'undefined' && /Android/.test(navigator.userAgent);
-
   const updateKeyboardState = useCallback((height: number) => {
     const isOpening = height > 100;
     setKeyboardHeight(height);
     setIsKeyboardOpen(isOpening);
   }, []);
 
-  // Main resize handler - works for both iOS and Android
+  // Simple resize handler
   useEffect(() => {
     if (typeof window === 'undefined') return;
 
@@ -43,75 +36,34 @@ export const useKeyboardHandler = (): KeyboardState => {
         const currentHeight = window.innerHeight;
         const heightDiff = originalHeightRef.current - currentHeight;
 
-        // Keyboard detection logic
-        const isLikelyKeyboard = heightDiff > 100 && 
-                                heightDiff < originalHeightRef.current * 0.7;
-
-        if (isLikelyKeyboard) {
-          // Keyboard opened
+        if (heightDiff > 100 && heightDiff < 500) {
           updateKeyboardState(heightDiff);
-          originalHeightRef.current = currentHeight;
         } else if (currentHeight > originalHeightRef.current && keyboardHeight > 0) {
-          // Keyboard closed
           updateKeyboardState(0);
-          originalHeightRef.current = currentHeight;
-        } else {
-          // Actual window resize
-          originalHeightRef.current = currentHeight;
         }
-      }, isIOS ? 150 : 100);
+      }, 100);
     };
 
-    // Visual Viewport API for modern browsers
-    const handleVisualViewport = () => {
-      if (!window.visualViewport) return;
-      
-      const visualViewport = window.visualViewport;
-      const heightDiff = window.innerHeight - visualViewport.height;
-      
-      if (heightDiff > 100) {
-        updateKeyboardState(heightDiff);
-      } else if (heightDiff < 50 && keyboardHeight > 0) {
-        updateKeyboardState(0);
-      }
-    };
-
-    // Add event listeners
     window.addEventListener('resize', handleResize);
-    
-    if (window.visualViewport) {
-      window.visualViewport.addEventListener('resize', handleVisualViewport);
-    }
 
-    // Cleanup
     return () => {
       window.removeEventListener('resize', handleResize);
-      if (window.visualViewport) {
-        window.visualViewport.removeEventListener('resize', handleVisualViewport);
-      }
       if (resizeTimeoutRef.current) {
         clearTimeout(resizeTimeoutRef.current);
       }
     };
-  }, [keyboardHeight, updateKeyboardState, isIOS]);
+  }, [keyboardHeight, updateKeyboardState]);
 
-  // Focus/blur handlers
   const handleFocus = useCallback(() => {
     focusTimeRef.current = Date.now();
-    
-    const delay = isIOS ? 400 : isAndroid ? 200 : 150;
-    
     setTimeout(() => {
       if (keyboardHeight === 0) {
-        const estimatedHeight = isIOS ? 336 : isAndroid ? 280 : 300;
-        updateKeyboardState(estimatedHeight);
+        updateKeyboardState(300);
       }
-    }, delay);
-  }, [isIOS, isAndroid, keyboardHeight, updateKeyboardState]);
+    }, 300);
+  }, [keyboardHeight, updateKeyboardState]);
 
   const handleBlur = useCallback(() => {
-    const delay = isIOS ? 200 : 100;
-    
     setTimeout(() => {
       const activeElement = document.activeElement;
       const isTextInput = activeElement?.tagName === 'TEXTAREA' || 
@@ -120,8 +72,8 @@ export const useKeyboardHandler = (): KeyboardState => {
       if (!isTextInput) {
         updateKeyboardState(0);
       }
-    }, delay);
-  }, [isIOS, updateKeyboardState]);
+    }, 100);
+  }, [updateKeyboardState]);
 
   return {
     keyboardHeight,
