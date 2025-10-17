@@ -10,7 +10,6 @@ import * as THREE from "three";
 function Avatar() {
   const [vrm, setVrm] = useState<VRM | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const loader = new GLTFLoader();
@@ -19,29 +18,16 @@ function Avatar() {
     loader.load(
       "/assets/base_avatar.vrm",
       (gltf) => {
-        try {
-          const vrm = gltf.userData.vrm as VRM;
-          if (vrm) {
-            vrm.scene.rotation.y = Math.PI;
-            vrm.scene.position.y = 0;
-            setVrm(vrm);
-            setError(null);
-          } else {
-            setError("No VRM data found in file");
-          }
-        } catch (err) {
-          setError("Failed to process VRM file");
-          console.error('VRM processing error:', err);
+        const vrm = gltf.userData.vrm as VRM;
+        if (vrm) {
+          vrm.scene.rotation.y = Math.PI;
+          setVrm(vrm);
         }
         setLoading(false);
       },
-      (progress) => {
-        // Optional: Add loading progress if needed
-        console.log('Loading progress:', (progress.loaded / progress.total) * 100);
-      },
+      undefined,
       (error) => {
         console.error('Failed to load VRM:', error);
-        setError("Failed to load avatar file");
         setLoading(false);
       }
     );
@@ -53,53 +39,32 @@ function Avatar() {
     }
   });
 
-  // Loading state
   if (loading) {
     return (
-      <group>
-        <mesh position={[0, 1.6, 0]}>
-          <boxGeometry args={[0.3, 0.3, 0.3]} />
-          <meshBasicMaterial color="#666666" transparent opacity={0.8} />
-        </mesh>
-        <pointLight position={[0, 2, 2]} intensity={0.5} color="#6666ff" />
-      </group>
+      <mesh position={[0, 1.6, 0]}>
+        <boxGeometry args={[0.5, 0.5, 0.5]} />
+        <meshBasicMaterial color="#666666" />
+      </mesh>
     );
   }
 
-  // Error state
-  if (error || !vrm) {
+  if (!vrm) {
     return (
-      <group>
-        <mesh position={[0, 1.6, 0]}>
-          <cylinderGeometry args={[0.3, 0.3, 0.8, 8]} />
-          <meshBasicMaterial color="#ff4444" transparent opacity={0.8} />
-        </mesh>
-        <pointLight position={[0, 2, 2]} intensity={0.5} color="#ff6666" />
-      </group>
+      <mesh position={[0, 1.6, 0]}>
+        <boxGeometry args={[0.5, 0.5, 0.5]} />
+        <meshBasicMaterial color="#ff4444" />
+      </mesh>
     );
   }
 
-  // Success state - VRM avatar
-  return (
-    <group>
-      <primitive object={vrm.scene} />
-    </group>
-  );
+  return <primitive object={vrm.scene} />;
 }
 
 function Floor() {
   return (
-    <mesh 
-      rotation={[-Math.PI / 2, 0, 0]} 
-      position={[0, 0, 0]} 
-      receiveShadow
-    >
+    <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
       <planeGeometry args={[20, 20]} />
-      <meshStandardMaterial 
-        color="#444444" 
-        roughness={0.8}
-        metalness={0.2}
-      />
+      <meshStandardMaterial color="#90ee90" />
     </mesh>
   );
 }
@@ -107,63 +72,39 @@ function Floor() {
 function Lights() {
   return (
     <>
-      <ambientLight intensity={0.4} />
+      <ambientLight intensity={0.6} />
       <directionalLight 
         position={[3, 5, 5]} 
-        intensity={1.0} 
+        intensity={1.2} 
         castShadow
-        shadow-mapSize-width={1024}
-        shadow-mapSize-height={1024}
-        shadow-camera-far={15}
-        shadow-camera-left={-7}
-        shadow-camera-right={7}
-        shadow-camera-top={7}
-        shadow-camera-bottom={-7}
       />
-      <pointLight position={[-5, 3, 2]} intensity={0.3} color="#ffaa33" />
-      <pointLight position={[2, 2, -3]} intensity={0.2} color="#66aaff" />
     </>
   );
-}
-
-function CameraController() {
-  useFrame(({ camera }) => {
-    // Smooth camera adjustments can go here if needed
-    camera.updateProjectionMatrix();
-  });
-  return null;
 }
 
 export default function Scene() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // Handle resize and focus management
+  // CRITICAL: iOS Chrome/Safari focus prevention
   useEffect(() => {
-    const handleResize = () => {
-      // Ensure canvas maintains proper dimensions
-      if (canvasRef.current) {
-        const canvas = canvasRef.current;
-        canvas.style.width = '100vw';
-        canvas.style.height = '100vh';
+    const preventFocus = (e: TouchEvent) => {
+      // Prevent focus on canvas touch (which causes keyboard issues)
+      if (e.target === canvasRef.current) {
+        e.preventDefault();
       }
-    };
-
-    // Prevent context menu on canvas
-    const handleContextMenu = (e: Event) => {
-      e.preventDefault();
     };
 
     const canvas = canvasRef.current;
     if (canvas) {
-      canvas.addEventListener('contextmenu', handleContextMenu);
-      window.addEventListener('resize', handleResize);
+      canvas.addEventListener('touchstart', preventFocus, { passive: false });
+      canvas.addEventListener('touchend', preventFocus, { passive: false });
     }
 
     return () => {
       if (canvas) {
-        canvas.removeEventListener('contextmenu', handleContextMenu);
+        canvas.removeEventListener('touchstart', preventFocus);
+        canvas.removeEventListener('touchend', preventFocus);
       }
-      window.removeEventListener('resize', handleResize);
     };
   }, []);
 
@@ -177,19 +118,17 @@ export default function Scene() {
           near: 0.1,
           far: 1000
         }}
-        onCreated={({ gl, scene, camera }) => {
-          // Optimize performance
-          gl.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        onCreated={({ gl }) => {
+          // iOS Performance optimizations
+          gl.setPixelRatio(Math.min(window.devicePixelRatio, 1)); // Lower for iOS
           gl.shadowMap.enabled = true;
           gl.shadowMap.type = THREE.PCFSoftShadowMap;
-          gl.autoClear = true;
           
-          // Scene setup
-          scene.fog = new THREE.Fog(0xe0e0e0, 10, 20);
-          
-          // Camera setup
-          camera.layers.enable(0); // Default layer
-          camera.layers.enable(1); // UI layer if needed
+          // iOS-specific context settings
+          const context = gl.getContext();
+          if (context instanceof WebGLRenderingContext) {
+            context.disable(context.DEPTH_TEST);
+          }
         }}
         style={{ 
           position: 'fixed',
@@ -198,29 +137,27 @@ export default function Scene() {
           width: '100vw',
           height: '100vh',
           display: 'block',
-          touchAction: 'none'
+          // iOS critical styles
+          touchAction: 'none',
+          WebkitTouchCallout: 'none',
+          WebkitUserSelect: 'none',
+          userSelect: 'none',
+          zIndex: 1
         }}
         gl={{
-          antialias: true,
+          antialias: false, // Disable for iOS performance
           alpha: false,
-          powerPreference: "high-performance"
+          powerPreference: "low-power" // Better for iOS
         }}
-        dpr={[1, 2]} // Adaptive pixel ratio
+        // iOS event handling
+        eventSource={canvasRef}
+        eventPrefix="client"
       >
         <color attach="background" args={["#e0e0e0"]} />
-        
-        <Suspense fallback={
-          <group>
-            <mesh position={[0, 1.6, 0]}>
-              <sphereGeometry args={[0.2, 16, 16]} />
-              <meshBasicMaterial color="#888888" transparent opacity={0.6} />
-            </mesh>
-          </group>
-        }>
+        <Suspense fallback={null}>
           <Lights />
           <Avatar />
           <Floor />
-          <CameraController />
         </Suspense>
         
         <OrbitControls 
@@ -230,14 +167,7 @@ export default function Scene() {
           enableRotate={true}
           minDistance={1}
           maxDistance={10}
-          minPolarAngle={0}
-          maxPolarAngle={Math.PI}
-          minAzimuthAngle={-Infinity}
-          maxAzimuthAngle={Infinity}
-          rotateSpeed={0.5}
-          zoomSpeed={0.8}
-          panSpeed={0.8}
-          // iOS touch handling
+          // iOS touch optimizations
           touches={{
             ONE: THREE.TOUCH.ROTATE,
             TWO: THREE.TOUCH.DOLLY_PAN
